@@ -129,3 +129,62 @@ def print_for_entry_points(raw):
                 m = np.array(m)
                 print(f"{d:x}{a:x}{b:x} {mcode_info(m)} ({num(m[3:10]):02d})")
             print()
+
+
+def load_microcode():
+    return decode(imageio.imread("img/mk51_rom_dump_screen.png"))
+
+
+class Microcode:
+    def __init__(self, raw):
+        self._raw = raw
+
+    def get(self, adr):
+        a = adr // 16
+        b = adr % 16
+        bits = self._raw[a, b::16]
+        assert len(bits) == 22
+        bits = 1 - bits
+        return np.sum(np.left_shift(1, np.mgrid[0:22]) * bits)
+
+def mcode_cmd_info(cmd):
+    m = np.where(np.left_shift(1, np.mgrid[0:22]) & cmd, 1, 0)
+    def f(a, b):
+        res = ""
+        r = range(a, b + 1) if a <= b else range(a, b - 1, -1)
+        for i in r:
+            res += str(m[i])
+        return res
+    return (f"m19-21:{f(19,21)} m14-18:{f(14,18)} m10-13:{f(10,13)} "
+            f"m10-13,19-21:{f(10,13)}{f(19,21)} m3-9:{f(3,9)} m2-0:{f(2,0)}")
+
+
+def next_adr(adr, cmd):
+    return (adr & 0xf) | ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
+
+def print_microcode(mc):
+    for i in range(16 * 64):
+        cmd = mc.get(i)
+        print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
+
+def microcode_paths(mc):
+    n = 16 * 64
+    indeg = np.zeros((n,), dtype=int)
+    for i in range(n):
+        cmd = mc.get(i)
+        indeg[next_adr(i, cmd)] += 1
+
+    done = np.zeros((n,), dtype=bool)
+    while True:
+        for i in range(n):
+            if not done[i] and indeg[i] == 0:
+                break
+        else:
+            break
+        while not done[i]:
+            done[i] = True
+            cmd = mc.get(i)
+            next = next_adr(i, cmd)
+            print(f"{i:03x} {cmd:022b} {next:03x} {mcode_cmd_info(cmd)}")
+            i = next
+        print()
