@@ -159,8 +159,46 @@ def mcode_cmd_info(cmd):
             f"m10-13,19-21:{f(10,13)}{f(19,21)} m3-9:{f(3,9)} m2-0:{f(2,0)}")
 
 
+def bf(n, a, b):
+    return (n >> b) & ((1 << (a - b + 1)) - 1)
+
+def inst_field(cmd):
+    return (cmd >> 14) & 0x1f
+
+def is_call(cmd):
+    return inst_field(cmd) == 0x1
+
+def is_return(cmd):
+    return inst_field(cmd) == 0x3
+
+def is_const(cmd):
+    return inst_field(cmd) == 0x2
+
+def return_adr(adr, cmd):
+    return (bf(cmd, 2, 0) << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+
+def imm_next_adr(adr, cmd):
+    n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
+    # TODO: analyze it better, when is this field a constant and when addr?
+    if (inst_field(cmd) & 0x18) == 8:
+        n |= (cmd >> 6) & 0xf
+    else:
+        n |= adr & 0xf
+    return n
+
 def next_adr(adr, cmd):
-    return (adr & 0xf) | ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
+    if is_call(cmd):
+        return return_adr(adr, cmd)
+    return imm_next_adr(adr, cmd)
+
+def decode_instr(adr, cmd):
+    if is_call(cmd):
+        return f"CALL {imm_next_adr(adr, cmd):04x}"
+    if is_return(cmd):
+        return "RETURN"
+    if is_const(cmd):
+        return f"CONST {bf(cmd, 9, 6)}"
+    return ""
 
 def print_microcode(mc):
     for i in range(16 * 64):
@@ -168,11 +206,19 @@ def print_microcode(mc):
         print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
 def microcode_paths(mc):
+    def refs_info(ind, r):
+        if ind < 2:
+            return ""
+        return "(from " + ",".join([f"{a:03x}" for a in r]) + ")"
+
     n = 16 * 64
     indeg = np.zeros((n,), dtype=int)
+    refs = {}
     for i in range(n):
         cmd = mc.get(i)
-        indeg[next_adr(i, cmd)] += 1
+        na = next_adr(i, cmd)
+        indeg[na] += 1
+        refs.setdefault(na, []).append(i)
 
     done = np.zeros((n,), dtype=bool)
     while True:
@@ -185,6 +231,7 @@ def microcode_paths(mc):
             done[i] = True
             cmd = mc.get(i)
             next = next_adr(i, cmd)
-            print(f"{i:03x} {cmd:022b} {next:03x} {mcode_cmd_info(cmd)}")
+            print(f"{i:03x} {cmd:022b} {next:03x} {mcode_cmd_info(cmd)} "
+                  f"{refs_info(indeg[i], refs.get(i, []))}  {decode_instr(i, cmd)}")
             i = next
         print()
