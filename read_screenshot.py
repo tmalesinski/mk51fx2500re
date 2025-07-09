@@ -162,6 +162,9 @@ def mcode_cmd_info(cmd):
 def bf(n, a, b):
     return (n >> b) & ((1 << (a - b + 1)) - 1)
 
+def bit(n, a):
+    return (n >> a) & 1
+
 def inst_field(cmd):
     return (cmd >> 14) & 0x1f
 
@@ -174,13 +177,16 @@ def is_return(cmd):
 def is_const(cmd):
     return inst_field(cmd) == 0x2
 
+def has_next_row(cmd):
+    return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
+            bf(cmd, 18, 15) != 3)
+
 def return_adr(adr, cmd):
     return (bf(cmd, 2, 0) << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
 
 def imm_next_adr(adr, cmd):
     n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
-    # TODO: analyze it better, when is this field a constant and when addr?
-    if (inst_field(cmd) & 0x18) == 8:
+    if has_next_row(cmd):
         n |= (cmd >> 6) & 0xf
     else:
         n |= adr & 0xf
