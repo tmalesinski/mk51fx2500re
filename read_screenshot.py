@@ -177,6 +177,50 @@ def is_return(cmd):
 def is_const(cmd):
     return inst_field(cmd) == 0x2
 
+def dins0(cmd):
+    return bf(cmd, 18, 15) == 3
+
+def dins1(cmd):
+    return bf(cmd, 18, 14) == 2
+
+def dins2(cmd):
+    return bf(cmd, 18, 14) == 0xd
+
+def dins3(cmd):
+    return bf(cmd, 15, 14) != 1
+
+def alu_input1(cmd):
+    res = []
+    if bit(cmd, 18):
+        res.append("LS1" if bit(cmd, 17) else "LS0")
+    if not bit(cmd, 18) and bit(cmd, 17):
+        if bf(cmd, 9, 6) == 0 and dins3(cmd):
+            res.append("KEY")
+        if bf(cmd, 9, 6) != 0:
+            res.append("IMM&?")
+    if dins2(cmd):
+        res.append("SELLS&?")
+    if not res:
+        res.append("0")
+    return ",".join(res)
+
+def alu_input0(cmd):
+    res = []
+    if bf(cmd, 18, 17) != 0 and dins3(cmd):
+        res.append("SELLS")
+    if dins0(cmd) and bf(cmd, 9, 6) == 0:
+        res.append("???")
+    if dins0(cmd) and bf(cmd, 9, 6) != 0:
+        res.append("IMM&SELLS")
+    if dins1(cmd):
+        res.append("IMM&?")
+    if dins2(cmd):
+        res.append("DINS4")
+    if not res:
+        res.append("0")
+    return ",".join(res)
+
+
 def has_next_row(cmd):
     return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
             bf(cmd, 18, 15) != 3)
@@ -214,7 +258,8 @@ def print_microcode(mc):
 def print_cmd_info(adr, cmd):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
-    print(f"{adr:03x}: {di:15s} n:{next_adr(adr, cmd):03x}")
+    print(f"{adr:03x}: {di:15s} n:{next_adr(adr, cmd):03x} "
+          f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
