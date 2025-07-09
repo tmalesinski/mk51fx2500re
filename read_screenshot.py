@@ -205,6 +205,15 @@ def print_microcode(mc):
         cmd = mc.get(i)
         print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
+def print_cmd_info(adr, cmd):
+    di = decode_instr(adr, cmd)
+    if not di: di = "???"
+    print(f"{adr:03x}: {di:15s} n:{next_adr(adr, cmd):03x}")
+    print(f"                     ins:{bf(cmd, 18, 14):05b} "
+          f"reg/stc:{bf(cmd, 21, 19):01x} "
+          f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
+          f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)}")
+
 def microcode_paths(mc):
     def refs_info(ind, r):
         if ind < 2:
@@ -231,7 +240,9 @@ def microcode_paths(mc):
             done[i] = True
             cmd = mc.get(i)
             next = next_adr(i, cmd)
-            print(f"{i:03x} {cmd:022b} {next:03x} {mcode_cmd_info(cmd)} "
-                  f"{refs_info(indeg[i], refs.get(i, []))}  {decode_instr(i, cmd)}")
+            print_cmd_info(i, cmd)
+            ri = refs_info(indeg[i], refs.get(i, []))
+            if ri:
+                print(" " * 21 + ri)
             i = next
         print()
