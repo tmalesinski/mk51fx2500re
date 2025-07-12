@@ -246,6 +246,15 @@ def imm_next_adr(adr, cmd):
         n |= adr & 0xf
     return n
 
+def branch_z_adr(adr, cmd):
+    if not (bf(cmd, 16, 15) == 3 and ((bf(cmd, 18, 14) & 0x19) != 0)):
+        return None
+    return next_adr(adr, cmd) | 0x20
+
+def branch_c_adr(adr, cmd):
+    if not bit(cmd, 15): return None
+    return next_adr(adr, cmd) | 0x10
+
 def next_adr(adr, cmd):
     if is_call(cmd):
         return return_adr(adr, cmd)
@@ -268,13 +277,23 @@ def print_microcode(mc):
 def print_cmd_info(adr, cmd):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
-    print(f"{adr:03x}: {di:15s} n:{next_adr(adr, cmd):03x} "
+    na = next_adr(adr, cmd)
+    print(f"{adr:03x}: {di:15s} n:{na:03x} "
           f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
           f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
           f"we:{int(dins13(cmd))}")
+    branches = []
+    bca = branch_c_adr(adr, cmd)
+    if bca is not None and bca != na:
+        branches.append(f"bc:{bca:03x}")
+    bza = branch_z_adr(adr, cmd)
+    if bza is not None and bza != na:
+        branches.append(f"bz:{bza:03x}")
+    if branches:
+        print(f"                     {' '.join(branches)}")
 
 def microcode_paths(mc):
     def refs_info(ind, r):
