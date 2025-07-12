@@ -19,7 +19,7 @@ def print_cycle():
 
 def get_cycle():
     res = []
-    n = 1
+    n = 15
     for i in range(15):
         res.append(n)
         n = lsfr_next(n)
