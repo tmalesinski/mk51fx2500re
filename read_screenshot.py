@@ -189,31 +189,41 @@ def dins2(cmd):
 def dins3(cmd):
     return bf(cmd, 15, 14) != 1
 
+# Likely write enable for shift registers
+def dins13(cmd):
+    int1 = bf(cmd, 18, 17) == 0 or bit(cmd, 15)
+    int2 = bf(cmd, 15, 14) != 2
+    return not (int1 and int2)
+
 def alu_input1(cmd):
     res = []
+    imm = f"#{bf(cmd, 9, 6):x}"
+    sells = f"SELLS{bf(cmd, 21, 19)}"
     if bit(cmd, 18):
         res.append("LS1" if bit(cmd, 17) else "LS0")
     if not bit(cmd, 18) and bit(cmd, 17):
         if bf(cmd, 9, 6) == 0 and dins3(cmd):
             res.append("KEY")
         if bf(cmd, 9, 6) != 0:
-            res.append("IMM&?")
+            res.append(f"{imm}&WIN")
     if dins2(cmd):
-        res.append("SELLS&?")
+        res.append(f"{sells}&?(mcd)")
     if not res:
         res.append("0")
     return ",".join(res)
 
 def alu_input0(cmd):
+    imm = f"#{bf(cmd, 9, 6):x}"
+    sells = f"SELLS{bf(cmd, 21, 19)}"
     res = []
     if bf(cmd, 18, 17) != 0 and dins3(cmd):
-        res.append("SELLS")
+        res.append(sells)
     if dins0(cmd) and bf(cmd, 9, 6) == 0:
-        res.append("???")
+        res.append("KR0?")
     if dins0(cmd) and bf(cmd, 9, 6) != 0:
-        res.append("IMM&SELLS")
+        res.append(f"{sells}&{imm}")
     if dins1(cmd):
-        res.append("IMM&?")
+        res.append(f"{imm}&WIN")
     if dins2(cmd):
         res.append("DINS4")
     if not res:
@@ -263,7 +273,8 @@ def print_cmd_info(adr, cmd):
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
-          f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)}")
+          f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
+          f"we:{int(dins13(cmd))}")
 
 def microcode_paths(mc):
     def refs_info(ind, r):
