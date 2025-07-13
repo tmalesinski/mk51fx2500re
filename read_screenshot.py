@@ -189,11 +189,23 @@ def dins2(cmd):
 def dins3(cmd):
     return bf(cmd, 15, 14) != 1
 
+def dins10(cmd):
+    return not (bf(cmd, 18, 16) == 0 and bf(cmd, 15, 14) != 2)
+
+def dins11(cmd):
+    return not (bf(cmd, 17, 14) == 5)
+
+def dins12(cmd):
+    return not (bf(cmd, 15, 14) == 1 or not bit(cmd, 16))
+
 # Likely write enable for shift registers
 def dins13(cmd):
     int1 = bf(cmd, 18, 17) == 0 or bit(cmd, 15)
     int2 = bf(cmd, 15, 14) != 2
     return not (int1 and int2)
+
+def dins14(cmd):
+    return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 5
 
 def alu_input1(cmd):
     res = []
@@ -246,13 +258,18 @@ def imm_next_adr(adr, cmd):
         n |= adr & 0xf
     return n
 
+def is_branch_z(cmd):
+    return bf(cmd, 16, 15) == 3 and ((bf(cmd, 18, 14) & 0x19) != 0)
+
 def branch_z_adr(adr, cmd):
-    if not (bf(cmd, 16, 15) == 3 and ((bf(cmd, 18, 14) & 0x19) != 0)):
-        return None
+    if not is_branch_z(cmd): return None
     return next_adr(adr, cmd) | 0x20
 
+def is_branch_c(cmd):
+    return bit(cmd, 15)
+
 def branch_c_adr(adr, cmd):
-    if not bit(cmd, 15): return None
+    if not is_branch_c(cmd): return None
     return next_adr(adr, cmd) | 0x10
 
 def next_adr(adr, cmd):
@@ -327,3 +344,24 @@ def microcode_paths(mc):
                 print(" " * 21 + ri)
             i = next
         print()
+
+def instruction_table():
+    for instr in range(32):
+        cmd = (instr << 14) | (5 << 19) | (3 << 6)
+        print(f"{instr:05b} "
+              f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
+              f"rowadr:{int(has_next_row(cmd))} "
+              f"di0: {int(dins0(cmd))} "
+              f"di1: {int(dins1(cmd))} "
+              f"di2: {int(dins2(cmd))} "
+              f"di3: {int(dins3(cmd))} "
+              f"call: {int(is_call(cmd))} "
+              f"ret: {int(is_return(cmd))} "
+              f"dins13: {int(dins13(cmd))} "
+              f"brz: {int(is_branch_z(cmd))} "
+              f"brc: {int(is_branch_c(cmd))} "
+              f"di10: {int(dins10(cmd))} "
+              f"di11: {int(dins11(cmd))} "
+              f"di12: {int(dins12(cmd))} "
+              f"di13: {int(dins13(cmd))} "
+              f"di14: {int(dins14(cmd))}")
