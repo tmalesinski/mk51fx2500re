@@ -177,24 +177,33 @@ def is_return(cmd):
 def is_const(cmd):
     return inst_field(cmd) == 0x2
 
+# ALU input 0: masked selected shift reg or KR0
 def dins0(cmd):
     return bf(cmd, 18, 15) == 3
 
+# ALU input 0: imm on the first window position
 def dins1(cmd):
     return bf(cmd, 18, 14) == 2
 
+# ALU input 0: selected shift reg but only on some windows
+# ALU input 1: dins4 (window and some shift fixed reg?)
 def dins2(cmd):
     return bf(cmd, 18, 14) == 0xd
 
+# ALU input 0: selected shift reg (with particular MCD 17 and MCD 18)
+# ALU input 1: KEY (wih particular MCD17 and MCD 18)
 def dins3(cmd):
     return bf(cmd, 15, 14) != 1
 
+# Enable window (otherwise finish instruction on the next digit)
 def dins10(cmd):
     return not (bf(cmd, 18, 16) == 0 and bf(cmd, 15, 14) != 2)
 
+# Probably to display buffer, depends on ALU input 0
 def dins11(cmd):
     return not (bf(cmd, 17, 14) == 5)
 
+# Some ALU control, maybe add/sub?
 def dins12(cmd):
     return not (bf(cmd, 15, 14) == 1 or not bit(cmd, 16))
 
@@ -204,8 +213,12 @@ def dins13(cmd):
     int2 = bf(cmd, 15, 14) != 2
     return not (int1 and int2)
 
+# To shift reg routing, depends on ALU input 0, so maybe some alternative
+# value to insert. Maybe shifting with insertion.
 def dins14(cmd):
     return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 5
+
+# dins15: some alu logic
 
 def alu_input1(cmd):
     res = []
@@ -357,7 +370,6 @@ def instruction_table():
               f"di3: {int(dins3(cmd))} "
               f"call: {int(is_call(cmd))} "
               f"ret: {int(is_return(cmd))} "
-              f"dins13: {int(dins13(cmd))} "
               f"brz: {int(is_branch_z(cmd))} "
               f"brc: {int(is_branch_c(cmd))} "
               f"di10: {int(dins10(cmd))} "
