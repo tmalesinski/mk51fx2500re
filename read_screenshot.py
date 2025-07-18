@@ -223,30 +223,30 @@ def dins14(cmd):
 def alu_input1(cmd):
     res = []
     imm = f"#{bf(cmd, 9, 6):x}"
-    sells = f"SELLS{bf(cmd, 21, 19)}"
+    selr = f"R{bf(cmd, 21, 19)}"
     if bit(cmd, 18):
-        res.append("LS1" if bit(cmd, 17) else "LS0")
+        res.append("R1" if bit(cmd, 17) else "R0")
     if not bit(cmd, 18) and bit(cmd, 17):
         if bf(cmd, 9, 6) == 0 and dins3(cmd):
             res.append("KEY")
         if bf(cmd, 9, 6) != 0:
             res.append(f"{imm}&WIN")
     if dins2(cmd):
-        res.append(f"{sells}&?(mcd)")
+        res.append(f"{selr}&?(mcd)")
     if not res:
         res.append("0")
     return ",".join(res)
 
 def alu_input0(cmd):
     imm = f"#{bf(cmd, 9, 6):x}"
-    sells = f"SELLS{bf(cmd, 21, 19)}"
+    selr = f"R{bf(cmd, 21, 19)}"
     res = []
     if bf(cmd, 18, 17) != 0 and dins3(cmd):
-        res.append(sells)
+        res.append(selr)
     if dins0(cmd) and bf(cmd, 9, 6) == 0:
         res.append("KR0?")
     if dins0(cmd) and bf(cmd, 9, 6) != 0:
-        res.append(f"{sells}&{imm}")
+        res.append(f"{selr}&{imm}")
     if dins1(cmd):
         res.append(f"{imm}&WIN")
     if dins2(cmd):
@@ -290,14 +290,56 @@ def next_adr(adr, cmd):
         return return_adr(adr, cmd)
     return imm_next_adr(adr, cmd)
 
-def decode_instr(adr, cmd):
+def decode_main_instr(adr, cmd):
     if is_call(cmd):
         return f"CALL {imm_next_adr(adr, cmd):04x}"
     if is_return(cmd):
         return "RETURN"
-    if is_const(cmd):
-        return f"CONST {bf(cmd, 9, 6)}"
-    return ""
+    sub = dins12(cmd)
+    a0 = alu_input0(cmd)
+    a1 = alu_input1(cmd)
+    if dins13(cmd):  # we
+        dest = f"R{bf(cmd, 21, 19)}"
+        a0_is_dest = a0 == dest
+        if a1 == "0":
+            if a0 == "0":
+                return f"CLR {dest}"
+            else:
+                return f"MOV {a0},{dest}"
+        elif a0 == "0":
+            if not sub:
+                return f"MOV {a1},{dest}"
+        else:
+            op = "SUB" if sub else "ADD"
+            if a0_is_dest:
+                return f"{op} {a1},{dest}"
+            else:
+                return f"{op} {a0},{a1},{dest}"
+    else:  # not we
+        if a0 == "0" and a1 == "0":
+            return f"NOP{bf(cmd, 18, 14)}"
+        elif sub:
+            return f"CMP {a1},{a0}"
+        else:
+            return f"CMPN {a1},{a0}"
+    return "???"
+
+
+def decode_instr(adr, cmd):
+    i = decode_main_instr(adr, cmd)
+    bca = branch_c_adr(adr, cmd)
+    na = next_adr(adr, cmd)
+    if bca is not None and bca != na:
+        i += f" BC:{bca:03x}"
+    bza = branch_z_adr(adr, cmd)
+    if bza is not None and bza != na:
+        i += f" BZ:{bza:03x}"
+    if not dins11(cmd):
+        i += " DSP?"
+    if dins14(cmd):
+        i += " SH?"
+    return i
+
 
 def print_microcode(mc):
     for i in range(16 * 64):
@@ -308,7 +350,8 @@ def print_cmd_info(adr, cmd):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
     na = next_adr(adr, cmd)
-    print(f"{adr:03x}: {di:15s} n:{na:03x} "
+    print(f"{adr:03x}: {di:15s}")
+    print(f"                     n:{na:03x} "
           f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
@@ -378,36 +421,4 @@ def instruction_table():
               f"di3: {int(dins3(cmd))} "
               f"di10: {int(dins10(cmd))}")
 
-        sub = dins12(cmd)
-        a0 = alu_input0(cmd)
-        a1 = alu_input1(cmd)
-        if is_call(cmd):
-            print("CALL")
-        elif is_return(cmd):
-            print("RETURN")
-        elif dins13(cmd):  # we
-            if a1 == "0":
-                if a0 == "0":
-                    print("CLR SELLS")
-                else:
-                    print(f"MOV {a0},SELLS")
-            elif a0 == "0":
-                if not sub:
-                    print(f"MOV {a1},SELLS")
-            elif not sub:
-                if a0 == "SELLS5":
-                    print(f"ADD {a1},SELLS")
-                else:
-                    print(f"ADD {a0},{a1},SELLS")
-            else:
-                if a0 == "SELLS5":
-                    print(f"SUB {a1},SELLS")
-                else:
-                    print(f"SUB {a0},{a1},SELLS")
-        else:  # not we
-            if a0 == "0" and a1 == "0":
-                print(f"NOP{instr}")
-            elif sub:
-                print(f"CMP {a1},{a0}")
-            else:
-                print(f"CMPN {a1},{a0}")
+        print(decode_instr(0, cmd))
