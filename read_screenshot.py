@@ -3,6 +3,7 @@
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+from windows import decode_window
 
 # 16, 50 - 3233, 1456
 
@@ -327,6 +328,8 @@ def decode_main_instr(adr, cmd):
 
 def decode_instr(adr, cmd):
     i = decode_main_instr(adr, cmd)
+    if dins10(cmd):
+        i += f" W{decode_window(bf(cmd, 13, 10))}"
     bca = branch_c_adr(adr, cmd)
     na = next_adr(adr, cmd)
     if bca is not None and bca != na:

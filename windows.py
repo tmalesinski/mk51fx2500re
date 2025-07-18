@@ -19,7 +19,7 @@ def print_cycle():
 
 def get_cycle():
     res = []
-    n = 15
+    n = 12
     for i in range(15):
         res.append(n)
         n = lsfr_next(n)
@@ -74,14 +74,15 @@ def print_window_signals():
     cycle = get_cycle()
     for w in range(16):
         print(f"w={w:x}")
-        for wf in [wnd1, wnd2, wnd3, wnd4]:
+        for wf in [wnd4, wnd3, wnd2, wnd1]:
             for dc in cycle:
                 print(to01(wf(w, dc)), end="")
             print()
 
         r0l = []
         r1l = []
-        r0 = r1 = False
+        r0 = False
+        r1 = True
         for dc in cycle:
             r0l.append(r0)
             r1l.append(r1)
@@ -96,3 +97,12 @@ def print_window_signals():
         for r1 in r1l:
             print(to01(r1), end="")
         print()
+
+def decode_window(w):
+    start = stop = None
+    for i, dc in enumerate(get_cycle()):
+        wstart = not (wnd2(w, dc) and wnd3(w, dc) and wnd4(w, dc))
+        wstop = not (wnd1(w, dc) and wnd3(w, dc) and wnd4(w, dc))
+        if wstart: start = i
+        if wstop: stop = i
+    return start, stop
