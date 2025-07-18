@@ -364,16 +364,50 @@ def instruction_table():
         print(f"{instr:05b} "
               f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
               f"rowadr:{int(has_next_row(cmd))} "
+              f"we: {int(dins13(cmd))} "
+              f"sub: {int(dins12(cmd))} "
+              f"brz: {int(is_branch_z(cmd))} "
+              f"brc: {int(is_branch_c(cmd))} "
+              f"call: {int(is_call(cmd))} "
+              f"ret: {int(is_return(cmd))} "
+              f"di11: {int(dins11(cmd))} "
+              f"di14: {int(dins14(cmd))} "
               f"di0: {int(dins0(cmd))} "
               f"di1: {int(dins1(cmd))} "
               f"di2: {int(dins2(cmd))} "
               f"di3: {int(dins3(cmd))} "
-              f"call: {int(is_call(cmd))} "
-              f"ret: {int(is_return(cmd))} "
-              f"brz: {int(is_branch_z(cmd))} "
-              f"brc: {int(is_branch_c(cmd))} "
-              f"di10: {int(dins10(cmd))} "
-              f"di11: {int(dins11(cmd))} "
-              f"di12: {int(dins12(cmd))} "
-              f"di13: {int(dins13(cmd))} "
-              f"di14: {int(dins14(cmd))}")
+              f"di10: {int(dins10(cmd))}")
+
+        sub = dins12(cmd)
+        a0 = alu_input0(cmd)
+        a1 = alu_input1(cmd)
+        if is_call(cmd):
+            print("CALL")
+        elif is_return(cmd):
+            print("RETURN")
+        elif dins13(cmd):  # we
+            if a1 == "0":
+                if a0 == "0":
+                    print("CLR SELLS")
+                else:
+                    print(f"MOV {a0},SELLS")
+            elif a0 == "0":
+                if not sub:
+                    print(f"MOV {a1},SELLS")
+            elif not sub:
+                if a0 == "SELLS5":
+                    print(f"ADD {a1},SELLS")
+                else:
+                    print(f"ADD {a0},{a1},SELLS")
+            else:
+                if a0 == "SELLS5":
+                    print(f"SUB {a1},SELLS")
+                else:
+                    print(f"SUB {a0},{a1},SELLS")
+        else:  # not we
+            if a0 == "0" and a1 == "0":
+                print(f"NOP{instr}")
+            elif sub:
+                print(f"CMP {a1},{a0}")
+            else:
+                print(f"CMPN {a1},{a0}")
