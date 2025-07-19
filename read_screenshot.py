@@ -285,15 +285,22 @@ def branch_z_adr(adr, cmd):
     return next_adr(adr, cmd) | 0x20
 
 def is_branch_c(cmd):
-    return bit(cmd, 15)
+    return bit(cmd, 15) and not is_return(cmd)
 
 def branch_c_adr(adr, cmd):
     if not is_branch_c(cmd): return None
     return next_adr(adr, cmd) | 0x10
 
+def branch_c_possible(cmd):
+    a0 = alu_input0(cmd)
+    a1 = alu_input1(cmd)
+    return a0 != "0" and a1 != "0"
+
 def next_adr(adr, cmd, ret_c1s=None):
     if is_call(cmd):
         return return_adr(adr, cmd, ret_c1s)
+    if is_return(cmd):
+        return None
     return imm_next_adr(adr, cmd)
 
 def decode_main_instr(adr, cmd):
@@ -354,12 +361,13 @@ def print_microcode(mc):
         cmd = mc.get(i)
         print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
-def print_cmd_info(adr, cmd):
+def print_cmd_info(adr, cmd, ret_c1s=None):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
-    na = next_adr(adr, cmd)
+    na = next_adr(adr, cmd, ret_c1s)
+    nas = f"{na:03x}" if na is not None else "ret"
     print(f"{adr:03x}: {di:15s}")
-    print(f"                     n:{na:03x} "
+    print(f"                     n:{nas} "
           f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
@@ -368,7 +376,7 @@ def print_cmd_info(adr, cmd):
           f"we:{int(dins13(cmd))}")
     branches = []
     bca = branch_c_adr(adr, cmd)
-    if bca is not None and bca != na:
+    if bca is not None and bca != na and branch_c_possible(cmd):
         branches.append(f"bc:{bca:03x}")
     bza = branch_z_adr(adr, cmd)
     if bza is not None and bza != na:
@@ -389,6 +397,7 @@ def microcode_paths(mc):
     for i in range(n):
         cmd = mc.get(i)
         na = next_adr(i, cmd, ret_c1s)
+        if na is None: continue
         indeg[na] += 1
         refs.setdefault(na, []).append(i)
 
@@ -403,10 +412,11 @@ def microcode_paths(mc):
             done[i] = True
             cmd = mc.get(i)
             next = next_adr(i, cmd, ret_c1s)
-            print_cmd_info(i, cmd)
+            print_cmd_info(i, cmd, ret_c1s)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
                 print(" " * 21 + ri)
+            if next is None: break
             i = next
         print()
 
@@ -458,7 +468,8 @@ def call_return_c1s(mc):
                     na = (rc1 << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
                 else:
                     print(f"  {ca:03x} ???")
-                    # TODO: this should be an error when we detect impossible branches
+                    # TODO: this should be an error when we detect
+                    # impossible branches better
                     # return None
                     continue
             else:
@@ -467,7 +478,7 @@ def call_return_c1s(mc):
             # TODO: detect impossible branches
             if is_branch_z(cmd):
                 stack.append(branch_z_adr(a, cmd))
-            if is_branch_c(cmd):
+            if is_branch_c(cmd) and branch_c_possible(cmd):
                 stack.append(branch_c_adr(a, cmd))
         print(f"Num of returns: {len(returns)}")
         if len(returns) == 1:
@@ -502,4 +513,9 @@ def call_return_c1s(mc):
                     print(f"{ca:03x} -> {r << 7:03x}")
                 else:
                     print(f"{ca:03x} not found")
+
+    n_valid = 0
+    for a, r in ret_c1s.items():
+        if r is not None: n_valid += 1
+    print(f"found returns: {n_valid}/{len(ret_c1s)}")
     return ret_c1s
