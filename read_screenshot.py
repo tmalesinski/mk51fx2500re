@@ -261,8 +261,13 @@ def has_next_row(cmd):
     return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
             bf(cmd, 18, 15) != 3)
 
-def return_adr(adr, cmd):
-    return (bf(cmd, 2, 0) << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+def return_adr(adr, cmd, ret_c1s=None):
+    rc1 = bf(cmd, 2, 0)
+    if ret_c1s is not None:
+        r = ret_c1s.get(imm_next_adr(adr, cmd), None)
+        if r is not None:
+            rc1 = r
+    return (rc1 << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
 
 def imm_next_adr(adr, cmd):
     n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
@@ -286,9 +291,9 @@ def branch_c_adr(adr, cmd):
     if not is_branch_c(cmd): return None
     return next_adr(adr, cmd) | 0x10
 
-def next_adr(adr, cmd):
+def next_adr(adr, cmd, ret_c1s=None):
     if is_call(cmd):
-        return return_adr(adr, cmd)
+        return return_adr(adr, cmd, ret_c1s)
     return imm_next_adr(adr, cmd)
 
 def decode_main_instr(adr, cmd):
@@ -372,6 +377,7 @@ def print_cmd_info(adr, cmd):
         print(f"                     {' '.join(branches)}")
 
 def microcode_paths(mc):
+    ret_c1s = call_return_c1s(mc)
     def refs_info(ind, r):
         if ind < 2:
             return ""
@@ -382,7 +388,7 @@ def microcode_paths(mc):
     refs = {}
     for i in range(n):
         cmd = mc.get(i)
-        na = next_adr(i, cmd)
+        na = next_adr(i, cmd, ret_c1s)
         indeg[na] += 1
         refs.setdefault(na, []).append(i)
 
@@ -396,7 +402,7 @@ def microcode_paths(mc):
         while not done[i]:
             done[i] = True
             cmd = mc.get(i)
-            next = next_adr(i, cmd)
+            next = next_adr(i, cmd, ret_c1s)
             print_cmd_info(i, cmd)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
@@ -425,3 +431,75 @@ def instruction_table():
               f"di10: {int(dins10(cmd))}")
 
         print(decode_instr(0, cmd))
+
+def call_return_c1s(mc):
+    searching = set()
+    ret_c1s = {}
+
+    def do_find_return(a):
+        stack = [a]
+        visited = set()
+        returns = set()
+        while stack:
+            a = stack.pop()
+            if a in visited: continue
+            visited.add(a)
+            cmd = mc.get(a)
+            if is_return(cmd):
+                returns.add(bf(cmd, 2, 0))
+                continue
+            if is_call(cmd):
+                ca = imm_next_adr(a, cmd)
+                if ca not in ret_c1s:
+                    print(f"  recursive search for {ca:03x}")
+                    find_return(ca)
+                rc1 = ret_c1s.get(ca, None)
+                if rc1 is not None:
+                    na = (rc1 << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+                else:
+                    print(f"  {ca:03x} ???")
+                    # TODO: this should be an error when we detect impossible branches
+                    # return None
+                    continue
+            else:
+                na = next_adr(a, cmd)
+            stack.append(na)
+            # TODO: detect impossible branches
+            if is_branch_z(cmd):
+                stack.append(branch_z_adr(a, cmd))
+            if is_branch_c(cmd):
+                stack.append(branch_c_adr(a, cmd))
+        print(f"Num of returns: {len(returns)}")
+        if len(returns) == 1:
+            return returns.pop()
+        else:
+            return None
+
+    def find_return(a):
+        if a in ret_c1s:
+            return ret_c1s[a]
+        if a in searching:
+            print(f"  recursion loop with {a:03x}")
+            return None
+        searching.add(a)
+        try:
+            r = do_find_return(a)
+            if r is not None:
+                print(f"  call {a:03x} -> {r << 7:03x}")
+            ret_c1s[a] = r
+        finally:
+            searching.remove(a)
+        return r
+
+    for a in range(0x400):
+        cmd = mc.get(a)
+        if is_call(cmd):
+            ca = imm_next_adr(a, cmd)
+            if ca not in ret_c1s:
+                r = find_return(ca)
+                if r:
+                    ret_c1s[ca] = r
+                    print(f"{ca:03x} -> {r << 7:03x}")
+                else:
+                    print(f"{ca:03x} not found")
+    return ret_c1s
