@@ -348,7 +348,7 @@ def decode_instr(adr, cmd):
             i += f" [{w[0]}]"
     bca = branch_c_adr(adr, cmd)
     na = next_adr(adr, cmd)
-    if bca is not None and bca != na:
+    if bca is not None and bca != na and branch_c_possible(cmd):
         i += f" BC:{bca:03x}"
     bza = branch_z_adr(adr, cmd)
     if bza is not None and bza != na:
