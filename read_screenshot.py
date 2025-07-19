@@ -341,7 +341,11 @@ def decode_main_instr(adr, cmd):
 def decode_instr(adr, cmd):
     i = decode_main_instr(adr, cmd)
     if dins10(cmd):
-        i += f" W{decode_window(bf(cmd, 13, 10))}"
+        w = decode_window(bf(cmd, 13, 10))
+        if w[0] != w[1]:
+            i += f" [{w[0]}:{w[1]}]"
+        else:
+            i += f" [{w[0]}]"
     bca = branch_c_adr(adr, cmd)
     na = next_adr(adr, cmd)
     if bca is not None and bca != na:
