@@ -395,34 +395,51 @@ def microcode_paths(mc):
             return ""
         return "(from " + ",".join([f"{a:03x}" for a in r]) + ")"
 
+    def next_adrs(adr, cmd, ret_c1s):
+        r = set()
+        na = next_adr(adr, cmd, ret_c1s)
+        if na is not None: r.add(na)
+        bca = branch_c_adr(adr, cmd)
+        if bca is not None and branch_c_possible(cmd): r.add(bca)
+        bza = branch_z_adr(adr, cmd)
+        if bza is not None: r.add(bza)
+        return r
+
     n = 16 * 64
     indeg = np.zeros((n,), dtype=int)
     refs = {}
     for i in range(n):
         cmd = mc.get(i)
-        na = next_adr(i, cmd, ret_c1s)
-        if na is None: continue
-        indeg[na] += 1
-        refs.setdefault(na, []).append(i)
+        for na in next_adrs(i, cmd, ret_c1s):
+            indeg[na] += 1
+            refs.setdefault(na, []).append(i)
 
     done = np.zeros((n,), dtype=bool)
     while True:
         for i in range(n):
-            if not done[i] and indeg[i] == 0:
+            if not done[i] and (i == 0 or indeg[i] == 0):
                 break
         else:
             break
-        while not done[i]:
+        branches = []
+        while True:
             done[i] = True
             cmd = mc.get(i)
             next = next_adr(i, cmd, ret_c1s)
+            for na in next_adrs(i, cmd, ret_c1s):
+                if na != next: branches.append(na)
             print_cmd_info(i, cmd, ret_c1s)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
                 print(" " * 21 + ri)
-            if next is None: break
-            i = next
-        print()
+            if next is None or done[next]:
+                while branches and done[branches[-1]]:
+                    branches.pop()
+                if not branches: break
+                i = branches.pop()
+            else:
+                i = next
+        print("=================")
 
 def instruction_table():
     for instr in range(32):
