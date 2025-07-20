@@ -441,6 +441,23 @@ def microcode_paths(mc):
                 i = next
         print("=================")
 
+def microcode_graph(mc):
+    ret_c1s = call_return_c1s(mc)
+    print("digraph {")
+    for a in range(1024):
+        cmd = mc.get(a)
+        print(f'i{a:03x} [label="{a:03x} {decode_instr(a, cmd)}"];')
+
+        na = next_adr(a, cmd, ret_c1s)
+        if na is not None: print(f"i{a:03x} -> i{na:03x};")
+        bca = branch_c_adr(a, cmd)
+        if bca is not None and branch_c_possible(cmd):
+            print(f"i{a:03x} -> i{bca:03x};")
+        bza = branch_z_adr(a, cmd)
+        if bza is not None:
+            print(f"i{a:03x} -> i{bza:03x};")
+    print("}")
+
 def instruction_table():
     for instr in range(32):
         cmd = (instr << 14) | (5 << 19) | (3 << 6)
