@@ -458,9 +458,9 @@ def microcode_graph(mc):
             print(f"i{a:03x} -> i{bza:03x};")
     print("}")
 
-def instruction_table():
+def instruction_table(imm=3):
     for instr in range(32):
-        cmd = (instr << 14) | (5 << 19) | (3 << 6)
+        cmd = (instr << 14) | (5 << 19) | (imm << 6)
         print(f"{instr:05b} "
               f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
               f"rowadr:{int(has_next_row(cmd))} "
