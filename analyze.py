@@ -166,6 +166,18 @@ def bf(n, a, b):
 def bit(n, a):
     return (n >> a) & 1
 
+def cons_adr(colh, coll, row):
+    return (colh << 7) | (coll << 4) | row
+
+def instr_next_colh(instr):
+    return bf(instr, 2, 0)
+
+def instr_next_coll(instr):
+    return bf(instr, 5, 3)
+
+def instr_return_adr(instr):
+    return cons_adr(0, bf(instr, 21, 19), bf(instr, 13, 10))
+
 def inst_field(cmd):
     return (cmd >> 14) & 0x1f
 
@@ -261,13 +273,13 @@ def has_next_row(cmd):
     return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
             bf(cmd, 18, 15) != 3)
 
-def return_adr(adr, cmd, ret_c1s=None):
-    rc1 = bf(cmd, 2, 0)
-    if ret_c1s is not None:
-        r = ret_c1s.get(imm_next_adr(adr, cmd), None)
+def return_adr(adr, cmd, ret_cols=None):
+    rcol = cons_adr(instr_next_colh(cmd), 0, 0)
+    if ret_cols is not None:
+        r = ret_cols.get(imm_next_adr(adr, cmd), None)
         if r is not None:
-            rc1 = r
-    return (rc1 << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+            rcol = r
+    return rcol | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
 
 def imm_next_adr(adr, cmd):
     n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
@@ -296,9 +308,9 @@ def branch_c_possible(cmd):
     a1 = alu_input1(cmd)
     return a0 != "0" and a1 != "0"
 
-def next_adr(adr, cmd, ret_c1s=None):
+def next_adr(adr, cmd, ret_cols=None):
     if is_call(cmd):
-        return return_adr(adr, cmd, ret_c1s)
+        return return_adr(adr, cmd, ret_cols)
     if is_return(cmd):
         return None
     return imm_next_adr(adr, cmd)
@@ -365,10 +377,10 @@ def print_microcode(mc):
         cmd = mc.get(i)
         print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
-def print_cmd_info(adr, cmd, ret_c1s=None):
+def print_cmd_info(adr, cmd, ret_cols=None):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
-    na = next_adr(adr, cmd, ret_c1s)
+    na = next_adr(adr, cmd, ret_cols)
     nas = f"{na:03x}" if na is not None else "ret"
     print(f"{adr:03x}: {di:15s}")
     print(f"                     n:{nas} "
@@ -389,15 +401,15 @@ def print_cmd_info(adr, cmd, ret_c1s=None):
         print(f"                     {' '.join(branches)}")
 
 def microcode_paths(mc):
-    ret_c1s = call_return_c1s(mc)
+    ret_cols = call_return_cols(mc)
     def refs_info(ind, r):
         if ind < 2:
             return ""
         return "(from " + ",".join([f"{a:03x}" for a in r]) + ")"
 
-    def next_adrs(adr, cmd, ret_c1s):
+    def next_adrs(adr, cmd, ret_cols):
         r = set()
-        na = next_adr(adr, cmd, ret_c1s)
+        na = next_adr(adr, cmd, ret_cols)
         if na is not None: r.add(na)
         bca = branch_c_adr(adr, cmd)
         if bca is not None and branch_c_possible(cmd): r.add(bca)
@@ -410,7 +422,7 @@ def microcode_paths(mc):
     refs = {}
     for i in range(n):
         cmd = mc.get(i)
-        for na in next_adrs(i, cmd, ret_c1s):
+        for na in next_adrs(i, cmd, ret_cols):
             indeg[na] += 1
             refs.setdefault(na, []).append(i)
 
@@ -425,10 +437,10 @@ def microcode_paths(mc):
         while True:
             done[i] = True
             cmd = mc.get(i)
-            next = next_adr(i, cmd, ret_c1s)
-            for na in next_adrs(i, cmd, ret_c1s):
+            next = next_adr(i, cmd, ret_cols)
+            for na in next_adrs(i, cmd, ret_cols):
                 if na != next: branches.append(na)
-            print_cmd_info(i, cmd, ret_c1s)
+            print_cmd_info(i, cmd, ret_cols)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
                 print(" " * 21 + ri)
@@ -442,13 +454,13 @@ def microcode_paths(mc):
         print("=================")
 
 def microcode_graph(mc):
-    ret_c1s = call_return_c1s(mc)
+    ret_cols = call_return_cols(mc)
     print("digraph {")
     for a in range(1024):
         cmd = mc.get(a)
         print(f'i{a:03x} [label="{a:03x} {decode_instr(a, cmd)}"];')
 
-        na = next_adr(a, cmd, ret_c1s)
+        na = next_adr(a, cmd, ret_cols)
         if na is not None: print(f"i{a:03x} -> i{na:03x};")
         bca = branch_c_adr(a, cmd)
         if bca is not None and branch_c_possible(cmd):
@@ -480,9 +492,9 @@ def instruction_table(imm=3):
 
         print(decode_instr(0, cmd))
 
-def call_return_c1s(mc):
+def call_return_cols(mc):
     searching = set()
-    ret_c1s = {}
+    ret_cols = {}
 
     def do_find_return(a):
         stack = [a]
@@ -494,16 +506,17 @@ def call_return_c1s(mc):
             visited.add(a)
             cmd = mc.get(a)
             if is_return(cmd):
-                returns.add(bf(cmd, 2, 0))
+                returns.add(
+                    cons_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
                 continue
             if is_call(cmd):
                 ca = imm_next_adr(a, cmd)
-                if ca not in ret_c1s:
+                if ca not in ret_cols:
                     print(f"  recursive search for {ca:03x}")
                     find_return(ca)
-                rc1 = ret_c1s.get(ca, None)
-                if rc1 is not None:
-                    na = (rc1 << 7) | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+                rcol = ret_cols.get(ca, None)
+                if rcol is not None:
+                    na = instr_return_adr(cmd) | rcol
                 else:
                     print(f"  {ca:03x} ???")
                     # TODO: this should be an error when we detect
@@ -525,8 +538,8 @@ def call_return_c1s(mc):
             return None
 
     def find_return(a):
-        if a in ret_c1s:
-            return ret_c1s[a]
+        if a in ret_cols:
+            return ret_cols[a]
         if a in searching:
             print(f"  recursion loop with {a:03x}")
             return None
@@ -534,8 +547,8 @@ def call_return_c1s(mc):
         try:
             r = do_find_return(a)
             if r is not None:
-                print(f"  call {a:03x} -> {r << 7:03x}")
-            ret_c1s[a] = r
+                print(f"  call {a:03x} -> {r:03x}")
+            ret_cols[a] = r
         finally:
             searching.remove(a)
         return r
@@ -544,16 +557,16 @@ def call_return_c1s(mc):
         cmd = mc.get(a)
         if is_call(cmd):
             ca = imm_next_adr(a, cmd)
-            if ca not in ret_c1s:
+            if ca not in ret_cols:
                 r = find_return(ca)
                 if r:
-                    ret_c1s[ca] = r
-                    print(f"{ca:03x} -> {r << 7:03x}")
+                    ret_cols[ca] = r
+                    print(f"{ca:03x} -> {r:03x}")
                 else:
                     print(f"{ca:03x} not found")
 
     n_valid = 0
-    for a, r in ret_c1s.items():
+    for a, r in ret_cols.items():
         if r is not None: n_valid += 1
-    print(f"found returns: {n_valid}/{len(ret_c1s)}")
-    return ret_c1s
+    print(f"found returns: {n_valid}/{len(ret_cols)}")
+    return ret_cols
