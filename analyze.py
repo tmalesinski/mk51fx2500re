@@ -194,12 +194,12 @@ def is_const(cmd):
 def dins0(cmd):
     return bf(cmd, 18, 15) == 3
 
-# ALU input 0: imm on the first window position
+# ALU input 0: imm on the last window position
 def dins1(cmd):
     return bf(cmd, 18, 14) == 2
 
 # ALU input 0: selected shift reg but only on some windows
-# ALU input 1: dins4 (window and some shift fixed reg?)
+# ALU input 1: dins4 (delayed selected reg when in window)
 def dins2(cmd):
     return bf(cmd, 18, 14) == 0xd
 
@@ -212,11 +212,11 @@ def dins3(cmd):
 def dins10(cmd):
     return not (bf(cmd, 18, 16) == 0 and bf(cmd, 15, 14) != 2)
 
-# Probably to display buffer, depends on ALU input 0
+# Swap R0 with the selected one.
 def dins11(cmd):
     return not (bf(cmd, 17, 14) == 5)
 
-# Some ALU control, maybe add/sub?
+# Add/sub.
 def dins12(cmd):
     return not (bf(cmd, 15, 14) == 1 or not bit(cmd, 16))
 
@@ -226,12 +226,12 @@ def dins13(cmd):
     int2 = bf(cmd, 15, 14) != 2
     return not (int1 and int2)
 
-# To shift reg routing, depends on ALU input 0, so maybe some alternative
-# value to insert. Maybe shifting with insertion.
+# Swap R1 with the selected one.
 def dins14(cmd):
     return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 5
 
-# dins15: some alu logic
+# dins15: selected reg when constant, added past ALU so that the register
+# gets shifted
 
 def alu_input1(cmd):
     res = []
