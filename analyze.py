@@ -246,6 +246,8 @@ def alu_input1(cmd):
             res.append(f"{imm}.L")
     if dins2(cmd):
         if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
+            # TODO: does it only happen with one element fields and
+            # is it then or with an immediate?
             res.append(f"{selr}")
     if not res:
         res.append("0")
