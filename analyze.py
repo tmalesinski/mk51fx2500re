@@ -243,12 +243,13 @@ def alu_input1(cmd):
         if bf(cmd, 9, 6) == 0 and dins3(cmd):
             res.append("KEY")
         if bf(cmd, 9, 6) != 0:
-            res.append(f"{imm}&WIN")
+            res.append(f"{imm}.L")
     if dins2(cmd):
-        res.append(f"{selr}&?(mcd)")
+        if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
+            res.append(f"{selr}")
     if not res:
         res.append("0")
-    return ",".join(res)
+    return "|".join(res)
 
 def alu_input0(cmd):
     imm = f"#{bf(cmd, 9, 6):x}"
@@ -261,9 +262,9 @@ def alu_input0(cmd):
     if dins0(cmd) and bf(cmd, 9, 6) != 0:
         res.append(f"{selr}&{imm}")
     if dins1(cmd):
-        res.append(f"{imm}&WIN")
+        res.append(f"{imm}.H|({selr} SHR)")
     if dins2(cmd):
-        res.append("DINS4")
+        res.append(f"{selr} SHL")
     if not res:
         res.append("0")
     return ",".join(res)
@@ -323,17 +324,25 @@ def decode_main_instr(adr, cmd):
     sub = dins12(cmd)
     a0 = alu_input0(cmd)
     a1 = alu_input1(cmd)
+    selr = f"R{bf(cmd, 21, 19)}"
     if dins13(cmd):  # we
-        dest = f"R{bf(cmd, 21, 19)}"
+        dest = selr
         a0_is_dest = a0 == dest
-        if a1 == "0":
-            if a0 == "0":
+        if a0 == "0":
+            if a1 == "0":
                 return f"CLR {dest}"
+            assert not sub
+            if not dins11(cmd):
+                assert a1 == "R0"
+                return f"SWAP {a1},{dest}"
+            elif dins14(cmd):
+                assert a1 == "R1"
+                return f"SWAP {a1},{dest}"
             else:
-                return f"MOV {a0},{dest}"
-        elif a0 == "0":
-            if not sub:
                 return f"MOV {a1},{dest}"
+        assert dins11(cmd) and not dins14(cmd)
+        if a1 == "0":
+            return f"MOV {a0},{dest}"
         else:
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
@@ -342,8 +351,14 @@ def decode_main_instr(adr, cmd):
                 return f"{op} {a0},{a1},{dest}"
     else:  # not we
         if a0 == "0" and a1 == "0":
-            return f"NOP{bf(cmd, 18, 14)}"
-        elif sub:
+            if not dins11(cmd):
+                return f"MOV {selr},R0"
+            elif dins14(cmd):
+                return f"MOV {selr},R1"
+            else:
+                return f"NOP{bf(cmd, 18, 14)}"
+        assert dins11(cmd) and not dins14(cmd)
+        if sub:
             return f"CMP {a1},{a0}"
         else:
             return f"CMPN {a1},{a0}"
@@ -365,10 +380,6 @@ def decode_instr(adr, cmd):
     bza = branch_z_adr(adr, cmd)
     if bza is not None and bza != na:
         i += f" BZ:{bza:03x}"
-    if not dins11(cmd):
-        i += " DSP?"
-    if dins14(cmd):
-        i += " SH?"
     return i
 
 
