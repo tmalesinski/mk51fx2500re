@@ -228,7 +228,7 @@ def dins13(cmd):
 
 # Swap R1 with the selected one.
 def dins14(cmd):
-    return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 5
+    return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 4
 
 # dins15: selected reg when constant, added past ALU so that the register
 # gets shifted
