@@ -432,7 +432,10 @@ def microcode_paths(mc):
             if not done[i] and (i == 0 or indeg[i] == 0):
                 break
         else:
-            break
+            for i in range(n):
+                if not done[i]: break
+            else:
+                break
         branches = []
         while True:
             done[i] = True
