@@ -136,6 +136,14 @@ def load_microcode():
     return decode(imageio.imread("img/mk51_rom_dump_screen.png"))
 
 
+def load_microcode_from_txt():
+    res = []
+    with open("mk51dump.txt") as f:
+        for line in f.readlines():
+            res.append(np.array(list(line.strip())) != "0")
+    return np.array(res).astype(int)
+
+
 class Microcode:
     def __init__(self, raw):
         self._raw = raw
