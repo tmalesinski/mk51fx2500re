@@ -228,6 +228,9 @@ def dins11(cmd):
 def dins12(cmd):
     return not (bf(cmd, 15, 14) == 1 or not bit(cmd, 16))
 
+def is_sub(cmd):
+    return dins12(cmd)
+
 # Likely write enable for shift registers
 def dins13(cmd):
     int1 = bf(cmd, 18, 17) == 0 or bit(cmd, 15)
@@ -325,6 +328,55 @@ def next_adr(adr, cmd, ret_cols=None):
     if is_return(cmd):
         return None
     return imm_next_adr(adr, cmd)
+
+def cz_possible(cmd, c, z):
+    if c and alu_input1(cmd) == "0":
+        return False
+    if c and z and is_sub(cmd):
+        return False
+    # TODO: any other interesting cases?
+    return True
+
+def all_same(lst):
+    if len(lst) == 0: return True
+    for elt in lst[1:]:
+        if elt != lst[0]: return False
+    return True
+
+def outgoing_edges(adr, cmd, ret_cols):
+    if is_call(cmd):
+        return [(return_adr(adr, cmd, ret_cols), "")]
+    if is_return(cmd):
+        return []
+    na = imm_next_adr(adr, cmd)
+    edges = []
+    for c in [True, False]:
+        for z in [True, False]:
+            if not cz_possible(cmd, c, z):
+                continue
+            a = na
+            if is_branch_c(cmd) and c:
+                a |= 0x10
+            if is_branch_z(cmd) and not z:
+                a |= 0x20
+            edges.append((c, z, a))
+
+    if all_same([e[2] for e in edges]):
+        return [(edges[0][2], "")]
+
+    res = []
+    for e in edges:
+         cstr = ""
+         if e[0] is True:
+             cstr += "C"
+         if e[0] is False:
+             cstr += "NC"
+         if e[1] is True:
+             cstr += "Z"
+         if e[1] is False:
+             cstr += "NZ"
+         res.append((e[2], cstr))
+    return res
 
 def decode_main_instr(adr, cmd):
     if is_call(cmd):
@@ -468,6 +520,8 @@ def microcode_paths(mc):
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
                 print(" " * 21 + ri)
+            for e in outgoing_edges(i, cmd, ret_cols):
+                print(f"  {e[1]}: {e[0]:03x}")
             if next is None or done[next]:
                 while branches and done[branches[-1]]:
                     branches.pop()
@@ -484,14 +538,8 @@ def microcode_graph(mc):
         cmd = mc.get(a)
         print(f'i{a:03x} [label="{a:03x} {decode_instr(a, cmd)}"];')
 
-        na = next_adr(a, cmd, ret_cols)
-        if na is not None: print(f"i{a:03x} -> i{na:03x};")
-        bca = branch_c_adr(a, cmd)
-        if bca is not None and branch_c_possible(cmd):
-            print(f"i{a:03x} -> i{bca:03x};")
-        bza = branch_z_adr(a, cmd)
-        if bza is not None:
-            print(f"i{a:03x} -> i{bza:03x};")
+        for e in outgoing_edges(a, cmd, ret_cols):
+            print(f'i{a:03x} -> i{e[0]:03x} [label="{e[1]}"]')
     print("}")
 
 def instruction_table(imm=3):
