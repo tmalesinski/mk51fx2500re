@@ -86,3 +86,46 @@ def read_bits(img):
             # TODO: classify 0/1 based on one example
             res[i, j] = np.dot(ar - M, C1) > THR
     return res
+
+def dist_from_means(bits, m):
+    d = []
+    for i in range(2):
+        d.append(np.sum(np.square(bits - m[i]), axis=-1))
+    return np.array(d)
+
+def kmeans(bits, m0, m1):
+    m = [m0, m1]
+    for step in range(10):
+        d = dist_from_means(bits, m)
+        closer = np.argmin(d, axis=0)
+        m = []
+        for i in range(2):
+            m.append(np.mean(bits[closer == i], axis=0))
+    return tuple(m)
+
+def read_with_kmeans_on_rows(gray, start, limit):
+    bits = []
+    for i in range(start, limit):
+        for j in range(NCOLS):
+            bits.append(get_area(gray, i, j, 3).flatten())
+    bits = np.array(bits)
+    ex1 = get_area(gray, 1, 1, 3).flatten()
+    ex0 = get_area(gray, 2, 1, 3).flatten()
+    m = kmeans(bits, ex0, ex1)
+    d = dist_from_means(bits, m)
+    plt.plot(range(d.shape[1]), d[0] - d[1], 'o'); plt.show()
+    return np.argmin(d, axis=0).reshape(limit - start, NCOLS)
+
+
+def read_with_kmeans(img):
+    gray = np.mean(img, axis=-1)
+    return np.concatenate(
+        (read_with_kmeans_on_rows(gray, 0, NROWS // 2),
+         read_with_kmeans_on_rows(gray, NROWS // 2, NROWS)), axis=0)
+
+def dump_str(read_bits):
+    rows = []
+    for i in range(16):
+        for j in range(4):
+            rows.append("".join([str(b) for b in read_bits[i * 5 + j]]))
+    return "\n".join(rows)
