@@ -244,7 +244,88 @@ def dins14(cmd):
 # dins15: selected reg when constant, added past ALU so that the register
 # gets shifted
 
-def alu_input1(cmd):
+class AluInput:
+    pass
+
+class RegisterInput(AluInput):
+    def __init__(self, n):
+        self.n = n
+
+    def __str__(self):
+        return f"R{self.n}"
+
+class KeyCodeInput(AluInput):
+    def __str__(self):
+        return f"KEY"
+
+class ConstantInput(AluInput):
+    def __init__(self, n):
+        self.n = n
+
+    def __str__(self):
+        return "0" if self.n == 0 else f"#{self.n:x}.L"
+
+class Kr0Input(AluInput):
+    def __str__(self):
+        return "KR0?"
+
+class MaskedRegisterInput(AluInput):
+    def __init__(self, n, mask):
+        self._n = n
+        self._mask = mask
+
+    def __str__(self):
+        return f"R{self._n}&#{self._mask:x}"
+
+class OredRegisterInput(AluInput):
+    def __init__(self, n, mask):
+        self._n = n
+        self._mask = mask
+
+    def __str__(self):
+        return f"#{self._mask:x}.L|R{self._n}"
+
+class PushDigitInput(AluInput):
+    def __init__(self, n, digit):
+        self._n = n
+        self._digit = digit
+
+    def __str__(self):
+        return f"#{self._digit:x}.H|(R{self._n} SHR)"
+
+class LeftShiftedRegisterInput(AluInput):
+    def __init__(self, n):
+        self._n = n
+
+    def __str__(self):
+        return f"R{self._n} SHL"
+
+
+def alu_input1_structured(cmd):
+    res = []
+    if bit(cmd, 18):
+        res.append(RegisterInput(1 if bit(cmd, 17) else 0))
+    if not bit(cmd, 18) and bit(cmd, 17):
+        if bf(cmd, 9, 6) == 0 and dins3(cmd):
+            res.append(KeyCodeInput())
+        if bf(cmd, 9, 6) != 0:
+            res.append(ConstantInput(bf(cmd, 9, 6)))
+    if dins2(cmd):
+        if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
+            # TODO: does it only happen with one element fields and
+            # is it then or with an immediate?
+            res.append(RegisterInput(bf(cmd, 21, 19)))
+    if not res:
+        res.append(ConstantInput(0))
+    if len(res) == 2:
+        if (isinstance(res[0], ConstantInput) and
+            isinstance(res[1], RegisterInput)):
+            res = [OredRegisterInput(res[1].n, res[0].n)]
+    assert len(res) == 1, res
+    return res[0]
+
+
+def alu_input1_old(cmd):
     res = []
     imm = f"#{bf(cmd, 9, 6):x}"
     selr = f"R{bf(cmd, 21, 19)}"
@@ -264,7 +345,33 @@ def alu_input1(cmd):
         res.append("0")
     return "|".join(res)
 
-def alu_input0(cmd):
+def alu_input1(cmd):
+    old_res = alu_input1_old(cmd)
+    new_res = str(alu_input1_structured(cmd))
+    if old_res != new_res:
+        print(f"{old_res}   !=   {new_res}")
+    return old_res
+
+def alu_input0_structured(cmd):
+    imm = bf(cmd, 9, 6)
+    selr = bf(cmd, 21, 19)
+    res = []
+    if bf(cmd, 18, 17) != 0 and dins3(cmd):
+        res.append(RegisterInput(selr))
+    if dins0(cmd) and bf(cmd, 9, 6) == 0:
+        res.append(Kr0Input())
+    if dins0(cmd) and bf(cmd, 9, 6) != 0:
+        res.append(MaskedRegisterInput(selr, imm))
+    if dins1(cmd):
+        res.append(PushDigitInput(selr, imm))
+    if dins2(cmd):
+        res.append(LeftShiftedRegisterInput(selr))
+    if not res:
+        res.append(ConstantInput(0))
+    assert len(res) == 1
+    return res[0]
+
+def alu_input0_old(cmd):
     imm = f"#{bf(cmd, 9, 6):x}"
     selr = f"R{bf(cmd, 21, 19)}"
     res = []
@@ -281,6 +388,14 @@ def alu_input0(cmd):
     if not res:
         res.append("0")
     return ",".join(res)
+
+
+def alu_input0(cmd):
+    old_res = alu_input0_old(cmd)
+    new_res = str(alu_input0_structured(cmd))
+    if old_res != new_res:
+        print(f"{old_res}   !=   {new_res}")
+    return old_res
 
 
 def has_next_row(cmd):
