@@ -189,6 +189,9 @@ def instr_return_adr(instr):
 def inst_field(cmd):
     return (cmd >> 14) & 0x1f
 
+def is_jump(cmd):
+    return inst_field(cmd) == 0
+
 def is_call(cmd):
     return inst_field(cmd) == 0x1
 
@@ -278,37 +281,37 @@ class Kr0Input(AluInput):
 
 class MaskedRegisterInput(AluInput):
     def __init__(self, n, mask):
-        self._n = n
-        self._mask = mask
+        self.n = n
+        self.mask = mask
 
     def __str__(self):
-        return f"R{self._n}&#{self._mask:x}"
+        return f"R{self.n}&#{self.mask:x}"
 
     def always_zero(self):
-        return self._mask == 0
+        return self.mask == 0
 
 class OredRegisterInput(AluInput):
     def __init__(self, n, mask):
-        self._n = n
-        self._mask = mask
+        self.n = n
+        self.mask = mask
 
     def __str__(self):
-        return f"#{self._mask:x}.L|R{self._n}"
+        return f"#{self.mask:x}.L|R{self.n}"
 
 class PushDigitInput(AluInput):
     def __init__(self, n, digit):
-        self._n = n
-        self._digit = digit
+        self.n = n
+        self.digit = digit
 
     def __str__(self):
-        return f"#{self._digit:x}.H|(R{self._n} SHR)"
+        return f"#{self.digit:x}.H|(R{self.n} SHR)"
 
 class LeftShiftedRegisterInput(AluInput):
     def __init__(self, n):
-        self._n = n
+        self.n = n
 
     def __str__(self):
-        return f"R{self._n} SHL"
+        return f"R{self.n} SHL"
 
 
 def alu_input1_structured(cmd):
@@ -375,7 +378,11 @@ def alu_input0_structured(cmd):
     if dins1(cmd):
         res.append(PushDigitInput(selr, imm))
     if dins2(cmd):
-        res.append(LeftShiftedRegisterInput(selr))
+        w = decode_window(bf(cmd, 13, 10))
+        if w[0] == w[1]:
+            res.append(ConstantInput(0))
+        else:
+            res.append(LeftShiftedRegisterInput(selr))
     if not res:
         res.append(ConstantInput(0))
     assert len(res) == 1
@@ -394,7 +401,11 @@ def alu_input0_old(cmd):
     if dins1(cmd):
         res.append(f"{imm}.H|({selr} SHR)")
     if dins2(cmd):
-        res.append(f"{selr} SHL")
+        w = decode_window(bf(cmd, 13, 10))
+        if w[0] == w[1]:
+            res.append("0")
+        else:
+            res.append(f"{selr} SHL")
     if not res:
         res.append("0")
     return ",".join(res)
@@ -562,16 +573,19 @@ def outgoing_edges(adr, cmd, ret_cols):
     return explain_edges(adr, cmd, res)
 
 def decode_main_instr(adr, cmd):
+    if is_jump(cmd):
+        return f"JUMP {imm_next_adr(adr, cmd):03x}"
     if is_call(cmd):
-        return f"CALL {imm_next_adr(adr, cmd):04x}"
+        return f"CALL {imm_next_adr(adr, cmd):03x}"
     if is_return(cmd):
-        return "RETURN"
+        return f"RETURN {imm_next_adr(adr, cmd):03x}"
     sub = dins12(cmd)
     a0 = alu_input0(cmd)
     a0s = alu_input0_structured(cmd)
     a1 = alu_input1(cmd)
     a1s = alu_input1_structured(cmd)
-    selr = f"R{bf(cmd, 21, 19)}"
+    selrn = bf(cmd, 21, 19)
+    selr = f"R{selrn}"
     if dins13(cmd):  # we
         dest = selr
         a0_is_dest = a0 == dest
@@ -585,12 +599,23 @@ def decode_main_instr(adr, cmd):
             elif dins14(cmd):
                 assert a1 == "R1"
                 return f"SWAP {a1},{dest}"
+            elif isinstance(a1s, OredRegisterInput) and a1s.n == selrn:
+                return f"OR #{a1s.mask:x},{dest}"
             else:
                 return f"MOV {a1s},{dest}"
         assert dins11(cmd) and not dins14(cmd)
         if a1s.always_zero():
+            if isinstance(a0s, MaskedRegisterInput) and a0s.n == selrn:
+                return f"AND #{a0s.mask:x},{dest}"
+            if isinstance(a0s, LeftShiftedRegisterInput) and a0s.n == selrn:
+                return f"SHL {dest}"
+            if isinstance(a0s, PushDigitInput) and a0s.n == selrn:
+                return f"INSH #{a0s.digit:x},{dest}"
             return f"MOV {a0s},{dest}"
         else:
+            if (not sub and isinstance(a0s, LeftShiftedRegisterInput) and
+                isinstance(a1s, ConstantInput) and a0s.n == selrn):
+                return f"INSL #{a1s.n:x},{dest}"
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
                 return f"{op} {a1s},{dest}"
@@ -606,6 +631,8 @@ def decode_main_instr(adr, cmd):
                 return f"NOP{bf(cmd, 18, 14)}"
         assert dins11(cmd) and not dins14(cmd)
         if sub:
+            if a1s.always_zero() and isinstance(a0s, MaskedRegisterInput):
+                return f"TST #{a0s.mask:x},R{a0s.n}"
             return f"CMP {a1s},{a0s}"
         else:
             return f"CMPN {a1s},{a0s}"
