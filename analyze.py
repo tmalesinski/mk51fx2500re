@@ -504,6 +504,24 @@ def simplify_edges(edges):
             res.append(e)
     return res
 
+def explain_edges(adr, cmd, edges):
+    d = decode_main_instr(adr, cmd)
+    tr = {}
+    if d.startswith("CMP "):
+        tr = {
+            "C": ">",
+            "!C": "<=",
+            "Z": "=",
+            "!Z": "!=",
+            "!C!Z": "<",
+        }
+    elif d.startswith("CMPN "):
+        tr = {
+            "C": "<=",
+            "!C": ">",
+        }
+    return [(e[0], tr.get(e[1], e[1])) for e in edges]
+
 def outgoing_edges(adr, cmd, ret_cols):
     if is_call(cmd):
         return [(return_adr(adr, cmd, ret_cols), "")]
@@ -530,17 +548,18 @@ def outgoing_edges(adr, cmd, ret_cols):
 
     res = []
     for e in edges:
-         cstr = ""
-         if e[0] is True:
-             cstr += "C"
-         if e[0] is False:
-             cstr += "!C"
-         if e[1] is True:
-             cstr += "Z"
-         if e[1] is False:
-             cstr += "!Z"
-         res.append((e[2], cstr))
-    return res
+        cstr = ""
+        if e[0] is True:
+            cstr += "C"
+        if e[0] is False:
+            cstr += "!C"
+        if e[1] is True:
+            cstr += "Z"
+        if e[1] is False:
+            cstr += "!Z"
+        res.append((e[2], cstr))
+
+    return explain_edges(adr, cmd, res)
 
 def decode_main_instr(adr, cmd):
     if is_call(cmd):
