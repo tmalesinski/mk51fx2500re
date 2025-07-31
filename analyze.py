@@ -652,7 +652,7 @@ def decode_instr(adr, cmd, skip_adr=False):
     if dins10(cmd):
         w = decode_window(bf(cmd, 13, 10))
         if w[0] != w[1]:
-            i += f" [{w[0]}:{w[1]}]"
+            i += f" [{w[1]}:{w[0]}]"
         else:
             i += f" [{w[0]}]"
     if not skip_adr:
