@@ -456,6 +456,10 @@ def next_adr(adr, cmd, ret_cols=None):
     return imm_next_adr(adr, cmd)
 
 def cz_possible(cmd, c, z):
+    if c is None:
+        return cz_possible(cmd, True, z) or cz_possible(cmd, False, z)
+    if z is None:
+        return cz_possible(cmd, c, True) or cz_possible(cmd, c, False)
     if c and alu_input1_structured(cmd).always_zero():
         return False
     if c and z and is_sub(cmd):
@@ -469,15 +473,48 @@ def all_same(lst):
         if elt != lst[0]: return False
     return True
 
+def merge_edges(edges):
+    for i in range(2):
+        for v in [True, False]:
+            sel = [e[2] for e in edges if e[i] == v]
+            if len(sel) != 2: continue
+            if not all_same(sel): continue
+
+            edges1 = [e for e in edges if e[i] != v]
+            merged = [None, None, sel[0]]
+            merged[i] = v
+            edges1.append(tuple(merged))
+            edges = edges1
+    return edges
+
+def simplify_edges(edges):
+    res = []
+    for e in edges:
+        for i in range(2):
+            if e[i] is None: continue
+            n = 0
+            for e1 in edges:
+                if e1[i] == e[i]: n += 1
+            if n != 1: continue
+            simpler = list(e)
+            simpler[1 - i] = None
+            res.append(tuple(simpler))
+            break
+        else:
+            res.append(e)
+    return res
+
 def outgoing_edges(adr, cmd, ret_cols):
     if is_call(cmd):
         return [(return_adr(adr, cmd, ret_cols), "")]
     if is_return(cmd):
         return []
     na = imm_next_adr(adr, cmd)
+    c_enabled = is_branch_c(cmd) and na & 0x10 == 0
+    z_enabled = is_branch_z(cmd) and na & 0x20 == 0
     edges = []
-    for c in [True, False]:
-        for z in [True, False]:
+    for c in [True, False] if c_enabled else [None]:
+        for z in [True, False] if z_enabled else [None]:
             if not cz_possible(cmd, c, z):
                 continue
             a = na
@@ -489,6 +526,7 @@ def outgoing_edges(adr, cmd, ret_cols):
 
     if all_same([e[2] for e in edges]):
         return [(edges[0][2], "")]
+    edges = simplify_edges(merge_edges(edges))
 
     res = []
     for e in edges:
