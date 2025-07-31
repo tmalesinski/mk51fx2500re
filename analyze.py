@@ -245,7 +245,11 @@ def dins14(cmd):
 # gets shifted
 
 class AluInput:
-    pass
+    def __str__(self):
+        raise NotImplementedError()
+
+    def always_zero(self):
+        return False
 
 class RegisterInput(AluInput):
     def __init__(self, n):
@@ -265,6 +269,9 @@ class ConstantInput(AluInput):
     def __str__(self):
         return "0" if self.n == 0 else f"#{self.n:x}.L"
 
+    def always_zero(self):
+        return self.n == 0
+
 class Kr0Input(AluInput):
     def __str__(self):
         return "KR0?"
@@ -276,6 +283,9 @@ class MaskedRegisterInput(AluInput):
 
     def __str__(self):
         return f"R{self._n}&#{self._mask:x}"
+
+    def always_zero(self):
+        return self._mask == 0
 
 class OredRegisterInput(AluInput):
     def __init__(self, n, mask):
@@ -433,9 +443,10 @@ def branch_c_adr(adr, cmd):
     return next_adr(adr, cmd) | 0x10
 
 def branch_c_possible(cmd):
-    a0 = alu_input0(cmd)
-    a1 = alu_input1(cmd)
-    return a0 != "0" and a1 != "0"
+    a0 = alu_input0_structured(cmd)
+    a1 = alu_input1_structured(cmd)
+    # TODO: seems wrong on sub with a0 == 0 (if it happens at all)
+    return not a0.always_zero() and not a1.always_zero()
 
 def next_adr(adr, cmd, ret_cols=None):
     if is_call(cmd):
@@ -445,7 +456,7 @@ def next_adr(adr, cmd, ret_cols=None):
     return imm_next_adr(adr, cmd)
 
 def cz_possible(cmd, c, z):
-    if c and alu_input1(cmd) == "0":
+    if c and alu_input1_structured(cmd).always_zero():
         return False
     if c and z and is_sub(cmd):
         return False
@@ -500,13 +511,15 @@ def decode_main_instr(adr, cmd):
         return "RETURN"
     sub = dins12(cmd)
     a0 = alu_input0(cmd)
+    a0s = alu_input0_structured(cmd)
     a1 = alu_input1(cmd)
+    a1s = alu_input1_structured(cmd)
     selr = f"R{bf(cmd, 21, 19)}"
     if dins13(cmd):  # we
         dest = selr
         a0_is_dest = a0 == dest
-        if a0 == "0":
-            if a1 == "0":
+        if a0s.always_zero():
+            if a1s.always_zero():
                 return f"CLR {dest}"
             assert not sub
             if not dins11(cmd):
@@ -516,18 +529,18 @@ def decode_main_instr(adr, cmd):
                 assert a1 == "R1"
                 return f"SWAP {a1},{dest}"
             else:
-                return f"MOV {a1},{dest}"
+                return f"MOV {a1s},{dest}"
         assert dins11(cmd) and not dins14(cmd)
-        if a1 == "0":
-            return f"MOV {a0},{dest}"
+        if a1s.always_zero():
+            return f"MOV {a0s},{dest}"
         else:
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
-                return f"{op} {a1},{dest}"
+                return f"{op} {a1s},{dest}"
             else:
-                return f"{op} {a0},{a1},{dest}"
+                return f"{op} {a0},{a1s},{dest}"
     else:  # not we
-        if a0 == "0" and a1 == "0":
+        if a0s.always_zero() and a1s.always_zero():
             if not dins11(cmd):
                 return f"MOV {selr},R0"
             elif dins14(cmd):
@@ -536,9 +549,9 @@ def decode_main_instr(adr, cmd):
                 return f"NOP{bf(cmd, 18, 14)}"
         assert dins11(cmd) and not dins14(cmd)
         if sub:
-            return f"CMP {a1},{a0}"
+            return f"CMP {a1s},{a0s}"
         else:
-            return f"CMPN {a1},{a0}"
+            return f"CMPN {a1s},{a0s}"
     return "???"
 
 
