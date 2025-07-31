@@ -534,11 +534,11 @@ def outgoing_edges(adr, cmd, ret_cols):
          if e[0] is True:
              cstr += "C"
          if e[0] is False:
-             cstr += "NC"
+             cstr += "!C"
          if e[1] is True:
              cstr += "Z"
          if e[1] is False:
-             cstr += "NZ"
+             cstr += "!Z"
          res.append((e[2], cstr))
     return res
 
