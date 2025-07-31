@@ -423,13 +423,20 @@ def has_next_row(cmd):
     return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
             bf(cmd, 18, 15) != 3)
 
-def return_adr(adr, cmd, ret_cols=None):
+# TODO: stop using, it does not check ret_cols
+def return_adr(adr, cmd):
     rcol = cons_adr(instr_next_colh(cmd), 0, 0)
-    if ret_cols is not None:
-        r = ret_cols.get(imm_next_adr(adr, cmd), None)
-        if r is not None:
-            rcol = r
     return rcol | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+
+def return_adrs(adr, cmd, ret_cols=None):
+    # TODO: fail on missing returns instead of this guess?
+    rcols = [(cons_adr(instr_next_colh(cmd), 0, 0), "")]
+    if ret_cols is not None:
+        rs = ret_cols.get(imm_next_adr(adr, cmd), None)
+        if rs is not None:
+            rcols = rs
+    padr = (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+    return [(r | padr, l) for r, l in rcols]
 
 def imm_next_adr(adr, cmd):
     n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
@@ -459,9 +466,10 @@ def branch_c_possible(cmd):
     # TODO: seems wrong on sub with a0 == 0 (if it happens at all)
     return not a0.always_zero() and not a1.always_zero()
 
-def next_adr(adr, cmd, ret_cols=None):
+# TODO: stop using, it does not use ret_cols for calls.
+def next_adr(adr, cmd):
     if is_call(cmd):
-        return return_adr(adr, cmd, ret_cols)
+        return return_adr(adr, cmd)
     if is_return(cmd):
         return None
     return imm_next_adr(adr, cmd)
@@ -535,7 +543,7 @@ def explain_edges(adr, cmd, edges):
 
 def outgoing_edges(adr, cmd, ret_cols):
     if is_call(cmd):
-        return [(return_adr(adr, cmd, ret_cols), "")]
+        return return_adrs(adr, cmd, ret_cols)
     if is_return(cmd):
         return []
     na = imm_next_adr(adr, cmd)
@@ -639,7 +647,7 @@ def decode_main_instr(adr, cmd):
     return "???"
 
 
-def decode_instr(adr, cmd):
+def decode_instr(adr, cmd, skip_adr=False):
     i = decode_main_instr(adr, cmd)
     if dins10(cmd):
         w = decode_window(bf(cmd, 13, 10))
@@ -647,13 +655,16 @@ def decode_instr(adr, cmd):
             i += f" [{w[0]}:{w[1]}]"
         else:
             i += f" [{w[0]}]"
-    bca = branch_c_adr(adr, cmd)
-    na = next_adr(adr, cmd)
-    if bca is not None and bca != na and branch_c_possible(cmd):
-        i += f" BC:{bca:03x}"
-    bza = branch_z_adr(adr, cmd)
-    if bza is not None and bza != na:
-        i += f" BZ:{bza:03x}"
+    if not skip_adr:
+        if is_call(cmd):
+            i += f" R:{instr_return_adr(cmd):03x}"
+        elif not is_return(cmd) and not is_jump(cmd):
+            na = imm_next_adr(adr, cmd)
+            i += f" N:{na:03x}"
+            if is_branch_c(cmd) and na & 0x10 == 0 and branch_c_possible(cmd):
+                i += ",C"
+            if is_branch_z(cmd) and na & 0x20 == 0:
+                i += ",Z"
     return i
 
 
@@ -662,28 +673,17 @@ def print_microcode(mc):
         cmd = mc.get(i)
         print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
-def print_cmd_info(adr, cmd, ret_cols=None):
+def print_cmd_info(adr, cmd):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
-    na = next_adr(adr, cmd, ret_cols)
-    nas = f"{na:03x}" if na is not None else "ret"
     print(f"{adr:03x}: {di:15s}")
-    print(f"                     n:{nas} "
+    print(f"                     "
           f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
           f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
           f"we:{int(dins13(cmd))}")
-    branches = []
-    bca = branch_c_adr(adr, cmd)
-    if bca is not None and bca != na and branch_c_possible(cmd):
-        branches.append(f"bc:{bca:03x}")
-    bza = branch_z_adr(adr, cmd)
-    if bza is not None and bza != na:
-        branches.append(f"bz:{bza:03x}")
-    if branches:
-        print(f"                     {' '.join(branches)}")
 
 def microcode_paths(mc):
     ret_cols = call_return_cols(mc)
@@ -693,14 +693,7 @@ def microcode_paths(mc):
         return "(from " + ",".join([f"{a:03x}" for a in r]) + ")"
 
     def next_adrs(adr, cmd, ret_cols):
-        r = set()
-        na = next_adr(adr, cmd, ret_cols)
-        if na is not None: r.add(na)
-        bca = branch_c_adr(adr, cmd)
-        if bca is not None and branch_c_possible(cmd): r.add(bca)
-        bza = branch_z_adr(adr, cmd)
-        if bza is not None: r.add(bza)
-        return r
+        return [ea for ea, el in outgoing_edges(adr, cmd, ret_cols)]
 
     n = 16 * 64
     indeg = np.zeros((n,), dtype=int)
@@ -725,22 +718,17 @@ def microcode_paths(mc):
         while True:
             done[i] = True
             cmd = mc.get(i)
-            next = next_adr(i, cmd, ret_cols)
-            for na in next_adrs(i, cmd, ret_cols):
-                if na != next: branches.append(na)
-            print_cmd_info(i, cmd, ret_cols)
+            print_cmd_info(i, cmd)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
                 print(" " * 21 + ri)
             for e in outgoing_edges(i, cmd, ret_cols):
                 print(f"  {e[1]}: {e[0]:03x}")
-            if next is None or done[next]:
-                while branches and done[branches[-1]]:
-                    branches.pop()
-                if not branches: break
-                i = branches.pop()
-            else:
-                i = next
+                branches.append(e[0])
+            while branches and done[branches[-1]]:
+                branches.pop()
+            if not branches: break
+            i = branches.pop()
         print("=================")
 
 def microcode_graph(mc):
@@ -748,7 +736,8 @@ def microcode_graph(mc):
     print("digraph {")
     for a in range(1024):
         cmd = mc.get(a)
-        print(f'i{a:03x} [label="{a:03x} {decode_instr(a, cmd)}"];')
+        print(f'i{a:03x} [label="{a:03x} '
+              f'{decode_instr(a, cmd, skip_adr=True)}"];')
 
         for e in outgoing_edges(a, cmd, ret_cols):
             print(f'i{a:03x} -> i{e[0]:03x} [label="{e[1]}"]')
@@ -780,7 +769,7 @@ def call_return_cols(mc):
     searching = set()
     ret_cols = {}
 
-    def do_find_return(a):
+    def do_find_returns(a, level):
         stack = [a]
         visited = set()
         returns = set()
@@ -796,42 +785,41 @@ def call_return_cols(mc):
             if is_call(cmd):
                 ca = imm_next_adr(a, cmd)
                 if ca not in ret_cols:
-                    print(f"  recursive search for {ca:03x}")
-                    find_return(ca)
+                    print("  " * level + f"  recursive search for {ca:03x}")
+                    find_returns(ca, level + 1)
                 rcol = ret_cols.get(ca, None)
                 if rcol is not None:
-                    na = instr_return_adr(cmd) | rcol
+                    outg = outgoing_edges(a, cmd, ret_cols)
                 else:
                     print(f"  {ca:03x} ???")
-                    # TODO: this should be an error when we detect
-                    # impossible branches better
+                    # TODO: there are many cases where we get here because
+                    # of recursion cycles. Do these cycles actually happen?
+                    # Does the code purposefully leave a return value
+                    # on stack to do a non-local exit?
                     # return None
                     continue
             else:
-                na = next_adr(a, cmd)
-            stack.append(na)
-            # TODO: detect impossible branches
-            if is_branch_z(cmd):
-                stack.append(branch_z_adr(a, cmd))
-            if is_branch_c(cmd) and branch_c_possible(cmd):
-                stack.append(branch_c_adr(a, cmd))
-        print(f"Num of returns: {len(returns)}")
-        if len(returns) == 1:
-            return returns.pop()
-        else:
+                outg = outgoing_edges(a, cmd, ret_cols)
+            for ea, el in outg:
+                stack.append(ea)
+        if not returns:
+            print("no returns found")
             return None
+        sl = sorted(list(returns))
+        return [(a, f"R{i}") for i, a in enumerate(sl)]
 
-    def find_return(a):
+    def find_returns(a, level=0):
         if a in ret_cols:
             return ret_cols[a]
         if a in searching:
-            print(f"  recursion loop with {a:03x}")
+            print("  " * level + f"recursion cycle with {a:03x}")
             return None
         searching.add(a)
         try:
-            r = do_find_return(a)
+            r = do_find_returns(a, level)
             if r is not None:
-                print(f"  call {a:03x} -> {r:03x}")
+                rastr = ','.join([f'{ra:03x}' for ra, l in r])
+                print("  " * level + f"call {a:03x} -> {rastr}")
             ret_cols[a] = r
         finally:
             searching.remove(a)
@@ -842,10 +830,13 @@ def call_return_cols(mc):
         if is_call(cmd):
             ca = imm_next_adr(a, cmd)
             if ca not in ret_cols:
-                r = find_return(ca)
+                r = find_returns(ca)
+                # TODO: remove the rest?
+                continue
                 if r:
                     ret_cols[ca] = r
-                    print(f"{ca:03x} -> {r:03x}")
+                    rastr = ','.join([f'{ra:03x}' for ra, l in r])
+                    print(f"{ca:03x} -> {rastr}")
                 else:
                     print(f"{ca:03x} not found")
 
