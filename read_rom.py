@@ -23,11 +23,17 @@ def bit_pos(i, j):
     return (x, y)
 
 
-def get_area(gray, i, j, r):
+def get_area(gray, i, j, r, norm=False):
+    if norm:
+        neighb = get_area(gray, i, j, 10 * r, norm=False)
+        area = get_area(gray, i, j, r, norm=False)
+        return (area - np.mean(neighb)) / np.std(neighb)
+
     x, y = bit_pos(i, j)
-    return scipy.ndimage.affine_transform(
+    res = scipy.ndimage.affine_transform(
         gray, [1, 1], offset=(y - r, x - r), output_shape=(2 * r, 2 * r),
         prefilter=False)
+    return res
 
 
 def get_random_bits(img):
@@ -104,24 +110,47 @@ def kmeans(bits, m0, m1):
     return tuple(m)
 
 def read_with_kmeans_on_rows(gray, start, limit):
+    norm = False
     bits = []
+    nr = limit - start
+    nc = NCOLS
     for i in range(start, limit):
         for j in range(NCOLS):
-            bits.append(get_area(gray, i, j, 3).flatten())
+            bits.append(get_area(gray, i, j, 3, norm=norm).flatten())
     bits = np.array(bits)
-    ex1 = get_area(gray, 1, 1, 3).flatten()
-    ex0 = get_area(gray, 2, 1, 3).flatten()
+    ex1 = get_area(gray, 1, 1, 3, norm=norm).flatten()
+    ex0 = get_area(gray, 2, 1, 3, norm=norm).flatten()
     m = kmeans(bits, ex0, ex1)
     d = dist_from_means(bits, m)
+
+    ind = ([], [])
+    for i in range(2):
+        v = d[i] < d[1 - i]
+        counts, bins = np.histogram(d[i][v], bins=1000)
+        plt.hist(bins[:-1], bins, weights=counts); plt.show()
+        ind1 = np.unravel_index(np.argsort(d[i]), (nr, nc))
+        ind[0].extend(ind1[0][-50:])
+        ind[1].extend(ind1[1][-50:])
+
     plt.plot(range(d.shape[1]), d[0] - d[1], 'o'); plt.show()
-    return np.argmin(d, axis=0).reshape(limit - start, NCOLS)
+    return np.argmin(d, axis=0).reshape(nr, nc), ind
 
 
 def read_with_kmeans(img):
+    # TODO: check how good this is, maybe try with normalization
+    # gray = scipy.ndimage.gaussian_filter(scipy.ndimage.laplace(np.mean(img, axis=-1)), 2)
     gray = np.mean(img, axis=-1)
-    return np.concatenate(
-        (read_with_kmeans_on_rows(gray, 0, NROWS // 2),
-         read_with_kmeans_on_rows(gray, NROWS // 2, NROWS)), axis=0)
+    parts = []
+    outliers = ([], [])
+    for i in range(2):
+        start = NROWS * i // 2
+        limit = NROWS * (i + 1) // 2
+        v, outl = read_with_kmeans_on_rows(gray, start, limit)
+        parts.append(v)
+        outliers[0].extend(np.array(outl[0]) + start)
+        outliers[1].extend(outl[1])
+
+    return np.concatenate(parts, axis=0), outliers
 
 def dump_str(read_bits):
     rows = []
@@ -129,3 +158,22 @@ def dump_str(read_bits):
         for j in range(4):
             rows.append("".join([str(b) for b in read_bits[i * 5 + j]]))
     return "\n".join(rows)
+
+def show_bits(img, bits, v):
+    plt.imshow(img)
+    points = []
+    for i in range(NROWS):
+        for j in range(NCOLS):
+            if bits[i, j] == v:
+                points.append(bit_pos(i, j))
+    plt.plot([p[0] for p in points], [p[1] for p in points], 'o', alpha=0.3)
+    plt.show()
+
+def show_outliers(img, bits, outliers, v):
+    plt.imshow(img)
+    points = []
+    for i, j in zip(*outliers):
+        if bits[i, j] == v:
+            points.append(bit_pos(i, j))
+    plt.plot([p[0] for p in points], [p[1] for p in points], 'o', alpha=0.3)
+    plt.show()
