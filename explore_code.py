@@ -26,6 +26,8 @@ KMODE = (7, 1)
 KMIN = (6, 8)
 KMR = (7, 8)
 KP = (4, 4)
+KINV = (6, 2)
+KDEG = (6, 12)
 
 def create_emulator():
     return Emulator(Microcode(load_microcode_from_txt()))
