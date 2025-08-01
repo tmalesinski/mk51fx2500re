@@ -106,3 +106,8 @@ def decode_window(w):
         if wstart: start = i
         if wstop: stop = i
     return start, stop
+
+# TODO: for w=0xc ([1:0]) there is probably no adjustment on 1
+# (possibly to have exponents in -159 to 159)
+def has_decimal_adjustment(w):
+    return w & 0xc == 0xc

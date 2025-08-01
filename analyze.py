@@ -3,7 +3,7 @@
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-from windows import decode_window
+from windows import decode_window, has_decimal_adjustment
 
 # 16, 50 - 3233, 1456
 
@@ -650,11 +650,14 @@ def decode_main_instr(adr, cmd):
 def decode_instr(adr, cmd, skip_adr=False):
     i = decode_main_instr(adr, cmd)
     if dins10(cmd):
-        w = decode_window(bf(cmd, 13, 10))
+        wcode = bf(cmd, 13, 10)
+        w = decode_window(wcode)
         if w[0] != w[1]:
             i += f" [{w[1]}:{w[0]}]"
         else:
             i += f" [{w[0]}]"
+        if has_decimal_adjustment(wcode):
+            i += ".D"
     if not skip_adr:
         if is_call(cmd):
             i += f" R:{instr_return_adr(cmd):03x}"
