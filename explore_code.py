@@ -131,7 +131,7 @@ def get_disp_after_keys():
             e.cont()
             print(row, f"{col_code:x}", display(e))
 
-def execute_seq(keys):
+def execute_seq(keys, trace=False):
     e = create_emulator()
     for k in keys:
         e.keycode = (0, 0)
@@ -140,6 +140,6 @@ def execute_seq(keys):
         e.del_all_breaks()
         e.keycode = k
         e.add_break(0x3f)
-        e.cont()
+        e.cont(trace=trace)
         e.del_all_breaks()
         print(display(e))

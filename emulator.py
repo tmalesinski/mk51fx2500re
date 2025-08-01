@@ -112,7 +112,7 @@ class Emulator:
         else:
             self._execute_alu_instr(instr)
 
-    def cont(self, steps=None, until_return=False):
+    def cont(self, steps=None, until_return=False, trace=False):
         if until_return:
             self.until_return = self.sp
 
@@ -121,6 +121,7 @@ class Emulator:
             steps -=1
 
         self.step()
+        if trace: self.print_state()
         while True:
             if steps is not None and steps == 0: return
 
@@ -134,6 +135,7 @@ class Emulator:
 
             if steps is not None: steps -= 1
             self.step()
+            if trace: self.print_state()
 
     def add_break(self, adr):
         self.breaks.add(adr)
