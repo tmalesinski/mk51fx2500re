@@ -1,0 +1,106 @@
+from emulator import Emulator
+from analyze import Microcode, load_microcode_from_txt
+
+def create_emulator():
+    return Emulator(Microcode(load_microcode_from_txt()))
+
+def call(e, adr):
+    e.pc = adr
+    e.cont(until_return=True)
+
+def reg_str(r):
+    return "".join(f"{d:x}" for d in reversed(r))
+
+def test_pi():
+    e = create_emulator()
+    call(e, 0x143)
+    return reg_str(e.regs[0])
+
+def test_pi180():
+    e = create_emulator()
+    call(e, 0x379)
+    return reg_str(e.regs[1])
+
+def test_ln10():
+    e = create_emulator()
+    call(e, 0x2c9)
+    return reg_str(e.regs[1])
+
+def test_ln_cordic():
+    res = []
+    for i in range(15):
+        e = create_emulator()
+        e.regs[0][0] = i
+        call(e, 0x280)
+        res.append(reg_str(e.regs[1]))
+    return res
+
+# TODO: check correctness, in particular the dest register at 030 should
+# probably be R1 (incorrect bit in the ROM read).
+def test_tan_cordic():
+    res = []
+    for i in range(15):
+        e = create_emulator()
+        e.regs[0][0] = i
+        call(e, 0x010)
+        res.append(reg_str(e.regs[1]))
+    return res
+
+def get_key_trace(row, col_code):
+    e = create_emulator()
+    e.add_break(0x3f)
+    e.cont()
+    e.del_all_breaks()
+    e.add_break(0x5f)
+    e.cont(50)
+    e.del_all_breaks()
+    e.keycode = (row, col_code)
+    trace = []
+    for i in range(100):
+        e.step()
+        trace.append(e.pc)
+    return trace
+
+def get_key_traces():
+    traces = []
+    for row in range(8):
+        for col_code in range(1, 15):
+            if col_code >= 4 and col_code & 3 != 0: continue
+            trace = get_key_trace(row, col_code)
+            traces.append((row, col_code, trace))
+    traces.sort(key=lambda t: t[2])
+    for row, col_code, trace in traces:
+        trstr = " ".join(f"{a:03x}" for a in trace)
+        print(f"{row} {col_code:x}: {trstr}")
+
+def display(e):
+    num = ""
+    ind = ""
+    for i in range(8):
+        d = e.regs[0][11 - i]
+        if d <= 9:
+            num += str(d)
+        elif d == 13:
+            num += "E"
+        elif d == 14:
+            num += "-"
+        else:
+            num += " "
+        p = e.regs[1][11 - i]
+        if p & 8:
+            num += "."
+        ind += str(i) if p & 4 else "_"
+    return f"|{num}| {ind}"
+
+def get_disp_after_keys():
+    for row in range(8):
+        for col_code in range(1, 15):
+            if col_code >= 4 and col_code & 3 != 0: continue
+            e = create_emulator()
+            e.add_break(0x5f)
+            e.cont()
+            e.del_all_breaks()
+            e.keycode = (row, col_code)
+            e.add_break(0x3f)
+            e.cont()
+            print(display(e))
