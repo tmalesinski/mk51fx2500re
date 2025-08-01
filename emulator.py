@@ -29,6 +29,9 @@ class Emulator:
 
         self.keycode = (0, 0)
 
+        self.breaks = set()
+        self.until_return = None
+
     def _get_input(self, inp, field):
         fs = slice(field[0], field[1] + 1)
         if isinstance(inp, analyze.RegisterInput):
@@ -108,6 +111,38 @@ class Emulator:
             return
         else:
             self._execute_alu_instr(instr)
+
+    def cont(self, steps=None, until_return=False):
+        if until_return:
+            self.until_return = self.sp
+
+        if steps is not None:
+            if steps == 0: return
+            steps -=1
+
+        self.step()
+        while True:
+            if steps is not None and steps == 0: return
+
+            if self.pc in self.breaks:
+                return
+            if self.until_return is not None:
+                if (is_return(self.mc.get(self.pc)) and
+                    self.until_return == self.sp):
+                    self.until_return = None
+                    return
+
+            if steps is not None: steps -= 1
+            self.step()
+
+    def add_break(self, adr):
+        self.breaks.add(adr)
+
+    def del_break(self, adr):
+        self.breaks.remove(adr)
+
+    def del_all_breaks(self):
+        self.breaks = set()
 
     def print_state(self):
         for i in range(2):
