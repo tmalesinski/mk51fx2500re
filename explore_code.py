@@ -1,6 +1,32 @@
 from emulator import Emulator
 from analyze import Microcode, load_microcode_from_txt
 
+
+K1 = (0, 4)
+K2 = (1, 4)
+K3 = (2, 4)
+K4 = (0, 2)
+K5 = (1, 2)
+K6 = (2, 2)
+K7 = (3, 2)
+K8 = (4, 2)
+K9 = (5, 2)
+K0 = (3, 4)
+KC = (0, 8)
+KPLUS = (5, 8)
+KEQ = (5, 4)
+KMINUS = (4, 8)
+KSQRT = (1, 1)
+KMUL = (3, 8)
+KSIN = (3, 12)
+KLOG = (0, 12)
+KPI = (6, 4)
+KF = (5, 1)
+KMODE = (7, 1)
+KMIN = (6, 8)
+KMR = (7, 8)
+KP = (4, 4)
+
 def create_emulator():
     return Emulator(Microcode(load_microcode_from_txt()))
 
@@ -103,4 +129,17 @@ def get_disp_after_keys():
             e.keycode = (row, col_code)
             e.add_break(0x3f)
             e.cont()
-            print(display(e))
+            print(row, f"{col_code:x}", display(e))
+
+def execute_seq(keys):
+    e = create_emulator()
+    for k in keys:
+        e.keycode = (0, 0)
+        e.add_break(0x5f)
+        e.cont()
+        e.del_all_breaks()
+        e.keycode = k
+        e.add_break(0x3f)
+        e.cont()
+        e.del_all_breaks()
+        print(display(e))
