@@ -106,8 +106,8 @@ def get_key_traces():
 def display(e):
     num = ""
     ind = ""
-    for i in range(8):
-        d = e.regs[0][11 - i]
+    for i in range(9):
+        d = e.regs[0][12 - i]
         if d <= 9:
             num += str(d)
         elif d == 13:
@@ -116,7 +116,7 @@ def display(e):
             num += "-"
         else:
             num += " "
-        p = e.regs[1][11 - i]
+        p = e.regs[1][12 - i]
         if p & 8:
             num += "."
         ind += str(i) if p & 4 else "_"
