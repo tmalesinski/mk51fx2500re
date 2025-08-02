@@ -84,12 +84,12 @@ class Emulator:
 
         fs = slice(field[0], field[1] + 1)
         selr = instr_reg(instr)
-        if dins13(instr):  # we
-            self.regs[selr][fs] = res
         if not dins11(instr):
             self.regs[0][fs] = self.regs[selr][fs]
         if dins14(instr):
             self.regs[1][fs] = self.regs[selr][fs]
+        if dins13(instr):  # we
+            self.regs[selr][fs] = res
 
         self.pc = imm_next_adr(self.pc, instr)
         if is_branch_c(instr) and c:
