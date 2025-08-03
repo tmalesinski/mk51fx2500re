@@ -5,7 +5,7 @@ import numpy as np
 from bits import *
 from instr import *
 from program import *
-from field import decode_window, has_decimal_adjustment
+from field import decode_field, has_decimal_adjustment
 
 # TODO: delete
 def cons_adr(colh, coll, row):
@@ -204,13 +204,13 @@ def decode_main_instr(adr, cmd):
 def decode_instr(adr, cmd, skip_adr=False):
     i = decode_main_instr(adr, cmd)
     if instr_field_en(cmd):
-        wcode = bf(cmd, 13, 10)
-        w = decode_window(wcode)
-        if w[0] != w[1]:
-            i += f" [{w[1]}:{w[0]}]"
+        fcode = bf(cmd, 13, 10)
+        f = decode_field(fcode)
+        if f[0] != f[1]:
+            i += f" [{f[1]}:{f[0]}]"
         else:
-            i += f" [{w[0]}]"
-        if has_decimal_adjustment(wcode):
+            i += f" [{f[0]}]"
+        if has_decimal_adjustment(fcode):
             i += ".D"
     if not skip_adr:
         if is_call(cmd):
