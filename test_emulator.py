@@ -20,11 +20,11 @@ class TestEmulator(unittest.TestCase):
     def _execute_seq(self, keys):
         for k in keys:
             self.emulator.keycode = (0, 0)
-            self.emulator.add_break(0x5f)
+            self.emulator.add_break(0x3c5)
             self.emulator.cont()
             self.emulator.del_all_breaks()
             self.emulator.keycode = k
-            self.emulator.add_break(0x3f)
+            self.emulator.add_break(0x3c3)
             self.emulator.cont()
             self.emulator.del_all_breaks()
         return "".join(f"{d:x}" for d in self.emulator.regs[0][12:3:-1])

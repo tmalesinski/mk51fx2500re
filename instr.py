@@ -16,10 +16,8 @@ __all__ = [
     "alu_input0", "alu_input1"
 ]
 
-# TODO: consider changing the convention to row, colh, coll.
-# Row address generally stays the same in related pieces of code.
-def make_adr(colh, coll, row):
-    return (colh << 7) | (coll << 4) | row
+def make_adr(row, colh, coll):
+    return (row << 6) | (colh << 3) | coll
 
 def instr_next_colh(instr):
     return bf(instr, 2, 0)
@@ -35,11 +33,11 @@ def instr_next_adr(adr, instr):
     if instr_has_next_row(instr):
         row = (instr >> 6) & 0xf
     else:
-        row = adr & 0xf
-    return make_adr(instr_next_colh(instr), instr_next_coll(instr), row)
+        row = adr >> 6
+    return make_adr(row, instr_next_colh(instr), instr_next_coll(instr))
 
 def instr_return_adr(instr):
-    return make_adr(0, bf(instr, 21, 19), bf(instr, 13, 10))
+    return make_adr(bf(instr, 13, 10), 0, bf(instr, 21, 19))
 
 def instr_op(instr):
     return (instr >> 14) & 0x1f

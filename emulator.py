@@ -93,9 +93,9 @@ class Emulator:
 
         self.pc = instr_next_adr(self.pc, instr)
         if is_branch_c(instr) and c:
-            self.pc |= 0x10
+            self.pc |= 1
         if is_branch_z(instr) and not all([d == 0 for d in res]):
-            self.pc |= 0x20
+            self.pc |= 2
 
     def step(self):
         instr = self.prog.get(self.pc)

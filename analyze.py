@@ -9,7 +9,7 @@ from field import decode_field, has_decimal_adjustment
 
 def return_adrs(adr, cmd, ret_cols=None):
     # TODO: fail on missing returns instead of this guess?
-    rcols = [(make_adr(instr_next_colh(cmd), 0, 0), "")]
+    rcols = [(make_adr(0, instr_next_colh(cmd), 0), "")]
     if ret_cols is not None:
         rs = ret_cols.get(instr_next_adr(adr, cmd), None)
         if rs is not None:
@@ -96,8 +96,8 @@ def outgoing_edges(adr, cmd, ret_cols):
     if is_return(cmd):
         return []
     na = instr_next_adr(adr, cmd)
-    c_enabled = is_branch_c(cmd) and na & 0x10 == 0
-    z_enabled = is_branch_z(cmd) and na & 0x20 == 0
+    c_enabled = is_branch_c(cmd) and na & 1 == 0
+    z_enabled = is_branch_z(cmd) and na & 2 == 0
     edges = []
     for c in [True, False] if c_enabled else [None]:
         for z in [True, False] if z_enabled else [None]:
@@ -105,9 +105,9 @@ def outgoing_edges(adr, cmd, ret_cols):
                 continue
             a = na
             if is_branch_c(cmd) and c:
-                a |= 0x10
+                a |= 1
             if is_branch_z(cmd) and not z:
-                a |= 0x20
+                a |= 2
             edges.append((c, z, a))
 
     if all_same([e[2] for e in edges]):
@@ -329,7 +329,7 @@ def call_return_cols(prog):
             cmd = prog.get(a)
             if is_return(cmd):
                 returns.add(
-                    make_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
+                    make_adr(0, instr_next_colh(cmd), instr_next_coll(cmd)))
                 continue
             if is_call(cmd):
                 ca = instr_next_adr(a, cmd)

@@ -43,17 +43,17 @@ def reg_str(r):
 
 def test_pi():
     e = create_emulator()
-    call(e, 0x143)
+    call(e, 0x0d4)
     return reg_str(e.regs[0])
 
 def test_pi180():
     e = create_emulator()
-    call(e, 0x379)
+    call(e, 0x277)
     return reg_str(e.regs[1])
 
 def test_ln10():
     e = create_emulator()
-    call(e, 0x2c9)
+    call(e, 0x26c)
     return reg_str(e.regs[1])
 
 def test_ln_cordic():
@@ -61,7 +61,7 @@ def test_ln_cordic():
     for i in range(15):
         e = create_emulator()
         e.regs[0][0] = i
-        call(e, 0x280)
+        call(e, 0x028)
         res.append(reg_str(e.regs[1]))
     return res
 
@@ -72,16 +72,16 @@ def test_tan_cordic():
     for i in range(15):
         e = create_emulator()
         e.regs[0][0] = i
-        call(e, 0x010)
+        call(e, 0x1)
         res.append(reg_str(e.regs[1]))
     return res
 
 def get_key_trace(row, col_code):
     e = create_emulator()
-    e.add_break(0x3f)
+    e.add_break(0x3c3)
     e.cont()
     e.del_all_breaks()
-    e.add_break(0x5f)
+    e.add_break(0x3c5)
     e.cont(50)
     e.del_all_breaks()
     e.keycode = (row, col_code)
@@ -127,11 +127,11 @@ def get_disp_after_keys():
         for col_code in range(1, 15):
             if col_code >= 4 and col_code & 3 != 0: continue
             e = create_emulator()
-            e.add_break(0x5f)
+            e.add_break(0x3c5)
             e.cont()
             e.del_all_breaks()
             e.keycode = (row, col_code)
-            e.add_break(0x3f)
+            e.add_break(0x3c3)
             e.cont()
             print(row, f"{col_code:x}", display(e))
 
@@ -139,11 +139,11 @@ def execute_seq(keys, trace=False):
     e = create_emulator()
     for k in keys:
         e.keycode = (0, 0)
-        e.add_break(0x5f)
+        e.add_break(0x3c5)
         e.cont()
         e.del_all_breaks()
         e.keycode = k
-        e.add_break(0x3f)
+        e.add_break(0x3c3)
         e.cont(trace=trace)
         e.del_all_breaks()
         print(display(e))
