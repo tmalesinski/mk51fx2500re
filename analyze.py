@@ -65,18 +65,6 @@ class Microcode:
         bits = 1 - bits
         return np.sum(np.left_shift(1, np.mgrid[0:22]) * bits)
 
-def mcode_cmd_info(cmd):
-    m = np.where(np.left_shift(1, np.mgrid[0:22]) & cmd, 1, 0)
-    def f(a, b):
-        res = ""
-        r = range(a, b + 1) if a <= b else range(a, b - 1, -1)
-        for i in r:
-            res += str(m[i])
-        return res
-    return (f"m19-21:{f(19,21)} m14-18:{f(14,18)} m10-13:{f(10,13)} "
-            f"m10-13,19-21:{f(10,13)}{f(19,21)} m3-9:{f(3,9)} m2-0:{f(2,0)}")
-
-
 # TODO: delete
 def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
@@ -307,11 +295,6 @@ def decode_instr(adr, cmd, skip_adr=False):
                 i += ",Z"
     return i
 
-
-def print_microcode(mc):
-    for i in range(16 * 64):
-        cmd = mc.get(i)
-        print(f"{i:03x} {cmd:022b} {next_adr(i, cmd):03x} {mcode_cmd_info(cmd)}")
 
 def print_cmd_info(adr, cmd):
     di = decode_instr(adr, cmd)
