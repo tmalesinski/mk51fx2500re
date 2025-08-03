@@ -14,7 +14,7 @@ def return_adrs(adr, cmd, ret_cols=None):
         rs = ret_cols.get(instr_next_adr(adr, cmd), None)
         if rs is not None:
             rcols = rs
-    padr = (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
+    padr = instr_return_adr(cmd)
     return [(r | padr, l) for r, l in rcols]
 
 def branch_c_possible(cmd):
