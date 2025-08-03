@@ -7,13 +7,9 @@ from instr import *
 from program import *
 from field import decode_field, has_decimal_adjustment
 
-# TODO: delete
-def cons_adr(colh, coll, row):
-    return make_adr(colh, coll, row)
-
 def return_adrs(adr, cmd, ret_cols=None):
     # TODO: fail on missing returns instead of this guess?
-    rcols = [(cons_adr(instr_next_colh(cmd), 0, 0), "")]
+    rcols = [(make_adr(instr_next_colh(cmd), 0, 0), "")]
     if ret_cols is not None:
         rs = ret_cols.get(instr_next_adr(adr, cmd), None)
         if rs is not None:
@@ -333,7 +329,7 @@ def call_return_cols(prog):
             cmd = prog.get(a)
             if is_return(cmd):
                 returns.add(
-                    cons_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
+                    make_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
                 continue
             if is_call(cmd):
                 ca = instr_next_adr(a, cmd)
