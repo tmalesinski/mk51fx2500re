@@ -94,7 +94,7 @@ def print_field_signals():
             print(int(r1), end="")
         print()
 
-def decode_field(f):
+def compute_decoded_field(f):
     start = stop = None
     for i, dc in enumerate(get_cycle()):
         fstart = not (fld2(f, dc) and fld3(f, dc) and fld4(f, dc))
@@ -102,6 +102,17 @@ def decode_field(f):
         if fstart: start = i
         if fstop: stop = i
     return start, stop
+
+_FIELDS = None
+
+def init_fields():
+    global _FIELDS
+    if not _FIELDS:
+        _FIELDS = [compute_decoded_field(f) for f in range(16)]
+
+def decode_field(f):
+    init_fields()
+    return _FIELDS[f]
 
 # TODO: for f=0xc ([1:0]) there is probably no adjustment on 1
 # (possibly to have exponents in -159 to 159)
