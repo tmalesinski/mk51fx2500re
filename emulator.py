@@ -1,8 +1,10 @@
+from bits import *
+from instr import *
 import analyze
-from analyze import is_call, is_return, instr_return_adr, imm_next_adr
+from instr import is_call, is_return, instr_return_adr
+from analyze import imm_next_adr
 from analyze import is_sub, dins11, dins13, dins14, is_branch_z, is_branch_c
 from analyze import alu_input0_structured, alu_input1_structured
-from analyze import bf
 from analyze import decode_instr
 from analyze import Microcode, load_microcode_from_txt
 from windows import decode_window, has_decimal_adjustment

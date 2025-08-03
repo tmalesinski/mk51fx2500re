@@ -3,6 +3,9 @@
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+
+from bits import *
+from instr import *
 from windows import decode_window, has_decimal_adjustment
 
 # 16, 50 - 3233, 1456
@@ -168,38 +171,9 @@ def mcode_cmd_info(cmd):
             f"m10-13,19-21:{f(10,13)}{f(19,21)} m3-9:{f(3,9)} m2-0:{f(2,0)}")
 
 
-def bf(n, a, b):
-    return (n >> b) & ((1 << (a - b + 1)) - 1)
-
-def bit(n, a):
-    return (n >> a) & 1
-
+# TODO: delete
 def cons_adr(colh, coll, row):
-    return (colh << 7) | (coll << 4) | row
-
-def instr_next_colh(instr):
-    return bf(instr, 2, 0)
-
-def instr_next_coll(instr):
-    return bf(instr, 5, 3)
-
-def instr_return_adr(instr):
-    return cons_adr(0, bf(instr, 21, 19), bf(instr, 13, 10))
-
-def inst_field(cmd):
-    return (cmd >> 14) & 0x1f
-
-def is_jump(cmd):
-    return inst_field(cmd) == 0
-
-def is_call(cmd):
-    return inst_field(cmd) == 0x1
-
-def is_return(cmd):
-    return inst_field(cmd) == 0x3
-
-def is_const(cmd):
-    return inst_field(cmd) == 0x2
+    return make_adr(colh, coll, row)
 
 # ALU input 0: masked selected shift reg or KR0
 def dins0(cmd):
