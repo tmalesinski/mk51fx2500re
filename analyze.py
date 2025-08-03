@@ -237,8 +237,8 @@ def print_cmd_info(adr, cmd):
           f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
           f"we:{int(instr_we(cmd))}")
 
-def microcode_paths(mc):
-    ret_cols = call_return_cols(mc)
+def program_paths(prog):
+    ret_cols = call_return_cols(prog)
     def refs_info(ind, r):
         if ind < 2:
             return ""
@@ -251,7 +251,7 @@ def microcode_paths(mc):
     indeg = np.zeros((n,), dtype=int)
     refs = {}
     for i in range(n):
-        cmd = mc.get(i)
+        cmd = prog.get(i)
         for na in next_adrs(i, cmd, ret_cols):
             indeg[na] += 1
             refs.setdefault(na, []).append(i)
@@ -269,7 +269,7 @@ def microcode_paths(mc):
         branches = []
         while True:
             done[i] = True
-            cmd = mc.get(i)
+            cmd = prog.get(i)
             print_cmd_info(i, cmd)
             ri = refs_info(indeg[i], refs.get(i, []))
             if ri:
@@ -283,11 +283,11 @@ def microcode_paths(mc):
             i = branches.pop()
         print("=================")
 
-def microcode_graph(mc):
-    ret_cols = call_return_cols(mc)
+def program_graph(prog):
+    ret_cols = call_return_cols(prog)
     print("digraph {")
     for a in range(1024):
-        cmd = mc.get(a)
+        cmd = prog.get(a)
         print(f'i{a:03x} [label="{a:03x} '
               f'{decode_instr(a, cmd, skip_adr=True)}"];')
 
@@ -318,7 +318,7 @@ def instruction_table(imm=3):
 
         print(decode_instr(0, cmd))
 
-def call_return_cols(mc):
+def call_return_cols(prog):
     searching = set()
     ret_cols = {}
 
@@ -330,7 +330,7 @@ def call_return_cols(mc):
             a = stack.pop()
             if a in visited: continue
             visited.add(a)
-            cmd = mc.get(a)
+            cmd = prog.get(a)
             if is_return(cmd):
                 returns.add(
                     cons_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
@@ -379,7 +379,7 @@ def call_return_cols(mc):
         return r
 
     for a in range(0x400):
-        cmd = mc.get(a)
+        cmd = prog.get(a)
         if is_call(cmd):
             ca = instr_next_adr(a, cmd)
             if ca not in ret_cols:

@@ -1,5 +1,5 @@
 from emulator import Emulator
-from program import Microcode
+from program import Program
 
 
 K1 = (0, 4)
@@ -32,7 +32,7 @@ KINV = (6, 2)
 KDMS = (6, 12)
 
 def create_emulator():
-    return Emulator(Microcode.from_file())
+    return Emulator(Program.from_file())
 
 def call(e, adr):
     e.pc = adr

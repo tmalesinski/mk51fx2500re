@@ -16,8 +16,8 @@ def instr_reg(instr):
 _STACK_SIZE = 5
 
 class Emulator:
-    def __init__(self, microcode):
-        self.mc = microcode
+    def __init__(self, program):
+        self.prog = program
         self.pc = 0
 
         self.regs = []
@@ -98,7 +98,7 @@ class Emulator:
             self.pc |= 0x20
 
     def step(self):
-        instr = self.mc.get(self.pc)
+        instr = self.prog.get(self.pc)
         next_adr = instr_next_adr(self.pc, instr)
 
         if is_call(instr):
@@ -128,7 +128,7 @@ class Emulator:
             if self.pc in self.breaks:
                 return
             if self.until_return is not None:
-                if (is_return(self.mc.get(self.pc)) and
+                if (is_return(self.prog.get(self.pc)) and
                     self.until_return == self.sp):
                     self.until_return = None
                     return
@@ -156,5 +156,5 @@ class Emulator:
             print()
         st = [self.stack[(self.sp - i - 1) % _STACK_SIZE] for i in range(5)]
         print(f"S: {' '.join(f'{a:03x}' for a in st)}")
-        print(f"{self.pc:03x} {decode_instr(self.pc, self.mc.get(self.pc))}")
+        print(f"{self.pc:03x} {decode_instr(self.pc, self.prog.get(self.pc))}")
 

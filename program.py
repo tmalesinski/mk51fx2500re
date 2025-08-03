@@ -1,4 +1,4 @@
-class Microcode:
+class Program:
     def __init__(self, code):
         self._code = code
 
@@ -12,7 +12,7 @@ class Microcode:
                 for r in range(16):
                     code.append(
                         int(line[r::16][::-1], base=2) ^ ((1 << 22) - 1))
-        return Microcode(code)
+        return Program(code)
 
     def get(self, adr):
         return self._code[adr]

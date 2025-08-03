@@ -3,7 +3,7 @@
 import unittest
 
 import emulator
-from analyze import Microcode
+from program import Program
 
 # TODO: move it to emulator?
 K1 = (0, 4)
@@ -15,7 +15,7 @@ KEQ = (5, 4)
 
 class TestEmulator(unittest.TestCase):
     def setUp(self):
-        self.emulator = emulator.Emulator(Microcode.from_file())
+        self.emulator = emulator.Emulator(Program.from_file())
 
     def _execute_seq(self, keys):
         for k in keys:
