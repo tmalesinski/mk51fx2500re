@@ -5,7 +5,7 @@ import numpy as np
 from bits import *
 from instr import *
 from program import *
-from windows import decode_window, has_decimal_adjustment
+from field import decode_window, has_decimal_adjustment
 
 # TODO: delete
 def cons_adr(colh, coll, row):

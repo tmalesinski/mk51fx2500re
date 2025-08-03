@@ -1,5 +1,5 @@
 from bits import bf, bit
-import windows
+import field
 
 __all__ = [
     "make_adr",
@@ -181,7 +181,7 @@ def alu_input0(instr):
     if is_const(instr):
         res.append(PushDigitInput(selr, imm))
     if instr_shl(instr):
-        w = windows.decode_window(bf(instr, 13, 10))
+        w = field.decode_window(bf(instr, 13, 10))
         if w[0] == w[1]:
             res.append(ConstantInput(0))
         else:
