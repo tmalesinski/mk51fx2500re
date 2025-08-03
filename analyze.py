@@ -201,10 +201,10 @@ def dins11(cmd):
 def instr_alu_sub(instr):
     return not (bf(instr, 15, 14) == 1 or not bit(instr, 16))
 
-# Likely write enable for shift registers
-def dins13(cmd):
-    int1 = bf(cmd, 18, 17) == 0 or bit(cmd, 15)
-    int2 = bf(cmd, 15, 14) != 2
+# Write enable for shift registers
+def instr_we(instr):
+    int1 = bf(instr, 18, 17) == 0 or bit(instr, 15)
+    int2 = bf(instr, 15, 14) != 2
     return not (int1 and int2)
 
 # Swap R1 with the selected one.
@@ -561,7 +561,7 @@ def decode_main_instr(adr, cmd):
     a1s = alu_input1_structured(cmd)
     selrn = bf(cmd, 21, 19)
     selr = f"R{selrn}"
-    if dins13(cmd):  # we
+    if instr_we(cmd):
         dest = selr
         a0_is_dest = a0 == dest
         if a0s.always_zero():
@@ -653,7 +653,7 @@ def print_cmd_info(adr, cmd):
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
           f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
-          f"we:{int(dins13(cmd))}")
+          f"we:{int(instr_we(cmd))}")
 
 def microcode_paths(mc):
     ret_cols = call_return_cols(mc)
@@ -719,7 +719,7 @@ def instruction_table(imm=3):
         print(f"{instr:05b} "
               f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
               f"rowadr:{int(has_next_row(cmd))} "
-              f"we: {int(dins13(cmd))} "
+              f"we: {int(instr_we(cmd))} "
               f"sub: {int(instr_alu_sub(cmd))} "
               f"brz: {int(is_branch_z(cmd))} "
               f"brc: {int(is_branch_c(cmd))} "

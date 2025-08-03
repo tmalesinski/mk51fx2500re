@@ -3,7 +3,7 @@ from instr import *
 import analyze
 from instr import is_call, is_return, instr_return_adr
 from analyze import instr_next_adr, instr_alu_sub
-from analyze import dins11, dins13, dins14, is_branch_z, is_branch_c
+from analyze import dins11, instr_we, dins14, is_branch_z, is_branch_c
 from analyze import alu_input0_structured, alu_input1_structured
 from analyze import decode_instr
 from analyze import Microcode, load_microcode_from_txt
@@ -90,7 +90,7 @@ class Emulator:
             self.regs[0][fs] = self.regs[selr][fs]
         if dins14(instr):
             self.regs[1][fs] = self.regs[selr][fs]
-        if dins13(instr):  # we
+        if instr_we(instr):
             self.regs[selr][fs] = res
 
         self.pc = instr_next_adr(self.pc, instr)
