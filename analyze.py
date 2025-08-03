@@ -176,17 +176,18 @@ def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
 
 # ALU input 0: masked selected shift reg or KR0
-def dins0(cmd):
+def instr_masked_reg(cmd):
     return bf(cmd, 18, 15) == 3
 
 # ALU input 0: selected shift reg but only on some windows
-# ALU input 1: dins4 (delayed selected reg when in window)
-def dins2(cmd):
+# ALU input 1: delayed selected reg when in window
+def instr_shl(cmd):
     return bf(cmd, 18, 14) == 0xd
 
+# Partial signal used in ALU input selection.
 # ALU input 0: selected shift reg (with particular MCD 17 and MCD 18)
 # ALU input 1: KEY (wih particular MCD17 and MCD 18)
-def dins3(cmd):
+def instr_insel0(cmd):
     return bf(cmd, 15, 14) != 1
 
 # Enable field (otherwise finish instruction on the next digit)
@@ -210,9 +211,6 @@ def instr_we(instr):
     int1 = bf(instr, 18, 17) == 0 or bit(instr, 15)
     int2 = bf(instr, 15, 14) != 2
     return not (int1 and int2)
-
-# dins15: selected reg when constant, added past ALU so that the register
-# gets shifted
 
 class AluInput:
     def __str__(self):
@@ -286,11 +284,11 @@ def alu_input1_structured(cmd):
     if bit(cmd, 18):
         res.append(RegisterInput(1 if bit(cmd, 17) else 0))
     if not bit(cmd, 18) and bit(cmd, 17):
-        if bf(cmd, 9, 6) == 0 and dins3(cmd):
+        if bf(cmd, 9, 6) == 0 and instr_insel0(cmd):
             res.append(KeyCodeInput())
         if bf(cmd, 9, 6) != 0:
             res.append(ConstantInput(bf(cmd, 9, 6)))
-    if dins2(cmd):
+    if instr_shl(cmd):
         if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
             # TODO: does it only happen with one element fields and
             # is it then or with an immediate?
@@ -312,11 +310,11 @@ def alu_input1_old(cmd):
     if bit(cmd, 18):
         res.append("R1" if bit(cmd, 17) else "R0")
     if not bit(cmd, 18) and bit(cmd, 17):
-        if bf(cmd, 9, 6) == 0 and dins3(cmd):
+        if bf(cmd, 9, 6) == 0 and instr_insel0(cmd):
             res.append("KEY")
         if bf(cmd, 9, 6) != 0:
             res.append(f"{imm}.L")
-    if dins2(cmd):
+    if instr_shl(cmd):
         if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
             # TODO: does it only happen with one element fields and
             # is it then or with an immediate?
@@ -336,15 +334,15 @@ def alu_input0_structured(cmd):
     imm = bf(cmd, 9, 6)
     selr = bf(cmd, 21, 19)
     res = []
-    if bf(cmd, 18, 17) != 0 and dins3(cmd):
+    if bf(cmd, 18, 17) != 0 and instr_insel0(cmd):
         res.append(RegisterInput(selr))
-    if dins0(cmd) and bf(cmd, 9, 6) == 0:
+    if instr_masked_reg(cmd) and bf(cmd, 9, 6) == 0:
         res.append(Kr0Input())
-    if dins0(cmd) and bf(cmd, 9, 6) != 0:
+    if instr_masked_reg(cmd) and bf(cmd, 9, 6) != 0:
         res.append(MaskedRegisterInput(selr, imm))
     if is_const(cmd):
         res.append(PushDigitInput(selr, imm))
-    if dins2(cmd):
+    if instr_shl(cmd):
         w = decode_window(bf(cmd, 13, 10))
         if w[0] == w[1]:
             res.append(ConstantInput(0))
@@ -359,15 +357,15 @@ def alu_input0_old(cmd):
     imm = f"#{bf(cmd, 9, 6):x}"
     selr = f"R{bf(cmd, 21, 19)}"
     res = []
-    if bf(cmd, 18, 17) != 0 and dins3(cmd):
+    if bf(cmd, 18, 17) != 0 and instr_insel0(cmd):
         res.append(selr)
-    if dins0(cmd) and bf(cmd, 9, 6) == 0:
+    if instr_masked_reg(cmd) and bf(cmd, 9, 6) == 0:
         res.append("KR0?")
-    if dins0(cmd) and bf(cmd, 9, 6) != 0:
+    if instr_masked_reg(cmd) and bf(cmd, 9, 6) != 0:
         res.append(f"{selr}&{imm}")
     if is_const(cmd):
         res.append(f"{imm}.H|({selr} SHR)")
-    if dins2(cmd):
+    if instr_shl(cmd):
         w = decode_window(bf(cmd, 13, 10))
         if w[0] == w[1]:
             res.append("0")
@@ -727,10 +725,10 @@ def instruction_table(imm=3):
               f"ret: {int(is_return(cmd))} "
               f"tor0: {int(instr_selr_to_r0(cmd))} "
               f"tor1: {int(instr_selr_to_r1(cmd))} "
-              f"di0: {int(dins0(cmd))} "
+              f"msk: {int(instr_masked_reg(cmd))} "
               f"cns: {int(is_const(cmd))} "
-              f"di2: {int(dins2(cmd))} "
-              f"di3: {int(dins3(cmd))} "
+              f"shl: {int(instr_shl(cmd))} "
+              f"is0: {int(instr_insel0(cmd))} "
               f"fen: {int(instr_field_en(cmd))}")
 
         print(decode_instr(0, cmd))
