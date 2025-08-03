@@ -69,11 +69,6 @@ class Microcode:
 def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
 
-# TODO: stop using, it does not check ret_cols
-def return_adr(adr, cmd):
-    rcol = cons_adr(instr_next_colh(cmd), 0, 0)
-    return rcol | (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
-
 def return_adrs(adr, cmd, ret_cols=None):
     # TODO: fail on missing returns instead of this guess?
     rcols = [(cons_adr(instr_next_colh(cmd), 0, 0), "")]
@@ -89,14 +84,6 @@ def branch_c_possible(cmd):
     a1 = alu_input1(cmd)
     # TODO: seems wrong on sub with a0 == 0 (if it happens at all)
     return not a0.always_zero() and not a1.always_zero()
-
-# TODO: stop using, it does not use ret_cols for calls.
-def next_adr(adr, cmd):
-    if is_call(cmd):
-        return return_adr(adr, cmd)
-    if is_return(cmd):
-        return None
-    return instr_next_adr(adr, cmd)
 
 def cz_possible(cmd, c, z):
     if c is None:
