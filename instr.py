@@ -6,6 +6,7 @@ __all__ = [
     "instr_next_adr", "instr_return_adr",
     "instr_op",
     "is_jump", "is_call", "is_return", "is_const",
+    "is_branch_z", "is_branch_c",
     "instr_masked_reg", "instr_shl", "instr_insel0", "instr_field_en",
     "instr_selr_to_r0", "instr_selr_to_r1", "instr_alu_sub", "instr_we"
 ]
@@ -47,6 +48,12 @@ def is_call(instr):
 
 def is_return(instr):
     return instr_op(instr) == 3
+
+def is_branch_z(instr):
+    return bf(instr, 16, 15) == 3 and ((bf(instr, 18, 14) & 0x19) != 0)
+
+def is_branch_c(instr):
+    return bit(instr, 15) and not is_return(instr)
 
 # TODO: rename to is_insl?
 def is_const(instr):

@@ -362,20 +362,6 @@ def return_adrs(adr, cmd, ret_cols=None):
     padr = (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
     return [(r | padr, l) for r, l in rcols]
 
-def is_branch_z(cmd):
-    return bf(cmd, 16, 15) == 3 and ((bf(cmd, 18, 14) & 0x19) != 0)
-
-def branch_z_adr(adr, cmd):
-    if not is_branch_z(cmd): return None
-    return next_adr(adr, cmd) | 0x20
-
-def is_branch_c(cmd):
-    return bit(cmd, 15) and not is_return(cmd)
-
-def branch_c_adr(adr, cmd):
-    if not is_branch_c(cmd): return None
-    return next_adr(adr, cmd) | 0x10
-
 def branch_c_possible(cmd):
     a0 = alu_input0_structured(cmd)
     a1 = alu_input1_structured(cmd)
