@@ -2,8 +2,8 @@ from bits import *
 from instr import *
 import analyze
 from instr import is_call, is_return, instr_return_adr
-from analyze import instr_next_adr
-from analyze import is_sub, dins11, dins13, dins14, is_branch_z, is_branch_c
+from analyze import instr_next_adr, instr_alu_sub
+from analyze import dins11, dins13, dins14, is_branch_z, is_branch_c
 from analyze import alu_input0_structured, alu_input1_structured
 from analyze import decode_instr
 from analyze import Microcode, load_microcode_from_txt
@@ -76,7 +76,7 @@ class Emulator:
         c = 0
         res = []
         for a, b in zip(v0, v1):
-            if not is_sub(instr):
+            if not instr_alu_sub(instr):
                 r = a + b + c
                 c = int(r >= base)
             else:

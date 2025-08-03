@@ -198,11 +198,8 @@ def dins11(cmd):
     return not (bf(cmd, 17, 14) == 5)
 
 # Add/sub.
-def dins12(cmd):
-    return not (bf(cmd, 15, 14) == 1 or not bit(cmd, 16))
-
-def is_sub(cmd):
-    return dins12(cmd)
+def instr_alu_sub(instr):
+    return not (bf(instr, 15, 14) == 1 or not bit(instr, 16))
 
 # Likely write enable for shift registers
 def dins13(cmd):
@@ -451,7 +448,7 @@ def cz_possible(cmd, c, z):
         return cz_possible(cmd, c, True) or cz_possible(cmd, c, False)
     if c and alu_input1_structured(cmd).always_zero():
         return False
-    if c and z and is_sub(cmd):
+    if c and z and instr_alu_sub(cmd):
         return False
     # TODO: any other interesting cases?
     return True
@@ -557,7 +554,7 @@ def decode_main_instr(adr, cmd):
         return f"CALL {instr_next_adr(adr, cmd):03x}"
     if is_return(cmd):
         return f"RETURN {instr_next_adr(adr, cmd):03x}"
-    sub = dins12(cmd)
+    sub = instr_alu_sub(cmd)
     a0 = alu_input0(cmd)
     a0s = alu_input0_structured(cmd)
     a1 = alu_input1(cmd)
@@ -723,7 +720,7 @@ def instruction_table(imm=3):
               f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
               f"rowadr:{int(has_next_row(cmd))} "
               f"we: {int(dins13(cmd))} "
-              f"sub: {int(dins12(cmd))} "
+              f"sub: {int(instr_alu_sub(cmd))} "
               f"brz: {int(is_branch_z(cmd))} "
               f"brc: {int(is_branch_c(cmd))} "
               f"call: {int(is_call(cmd))} "
