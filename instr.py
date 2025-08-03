@@ -32,6 +32,7 @@ def is_call(instr):
 def is_return(instr):
     return instr_op(instr) == 3
 
+# TODO: rename to is_insl?
 def is_const(instr):
     return instr_op(instr) == 2
 

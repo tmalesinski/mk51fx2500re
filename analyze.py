@@ -179,10 +179,6 @@ def cons_adr(colh, coll, row):
 def dins0(cmd):
     return bf(cmd, 18, 15) == 3
 
-# ALU input 0: imm on the last window position
-def dins1(cmd):
-    return bf(cmd, 18, 14) == 2
-
 # ALU input 0: selected shift reg but only on some windows
 # ALU input 1: dins4 (delayed selected reg when in window)
 def dins2(cmd):
@@ -349,7 +345,7 @@ def alu_input0_structured(cmd):
         res.append(Kr0Input())
     if dins0(cmd) and bf(cmd, 9, 6) != 0:
         res.append(MaskedRegisterInput(selr, imm))
-    if dins1(cmd):
+    if is_const(cmd):
         res.append(PushDigitInput(selr, imm))
     if dins2(cmd):
         w = decode_window(bf(cmd, 13, 10))
@@ -372,7 +368,7 @@ def alu_input0_old(cmd):
         res.append("KR0?")
     if dins0(cmd) and bf(cmd, 9, 6) != 0:
         res.append(f"{selr}&{imm}")
-    if dins1(cmd):
+    if is_const(cmd):
         res.append(f"{imm}.H|({selr} SHR)")
     if dins2(cmd):
         w = decode_window(bf(cmd, 13, 10))
@@ -735,7 +731,7 @@ def instruction_table(imm=3):
               f"di11: {int(dins11(cmd))} "
               f"di14: {int(dins14(cmd))} "
               f"di0: {int(dins0(cmd))} "
-              f"di1: {int(dins1(cmd))} "
+              f"cns: {int(is_const(cmd))} "
               f"di2: {int(dins2(cmd))} "
               f"di3: {int(dins3(cmd))} "
               f"di10: {int(dins10(cmd))}")
