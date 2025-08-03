@@ -66,16 +66,13 @@ def fld4(f, dc):
                 (not mcd[13] and not mcd[12] and not mcd[11] and not mcd[10] and
                  not dc[0] and not dc[1] and dc[2] and dc[3]))
 
-def to01(b):
-    return 1 if b else 0
-
 def print_field_signals():
     cycle = get_cycle()
     for f in range(16):
-        print(f"f={w:x}")
+        print(f"f={f:x}")
         for ff in [fld4, fld3, fld2, fld1]:
             for dc in cycle:
-                print(to01(ff(f, dc)), end="")
+                print(int(ff(f, dc)), end="")
             print()
 
         r0l = []
@@ -91,10 +88,10 @@ def print_field_signals():
             r0 = fld134
         print()
         for r0 in r0l:
-            print(to01(r0), end="")
+            print(int(r0), end="")
         print()
         for r1 in r1l:
-            print(to01(r1), end="")
+            print(int(r1), end="")
         print()
 
 def decode_field(f):
