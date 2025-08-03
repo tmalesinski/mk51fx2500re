@@ -31,13 +31,12 @@ def instr_has_next_row(cmd):
     return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
             bf(cmd, 18, 15) != 3)
 
-def instr_next_adr(adr, cmd):
-    n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
-    if instr_has_next_row(cmd):
-        n |= (cmd >> 6) & 0xf
+def instr_next_adr(adr, instr):
+    if instr_has_next_row(instr):
+        row = (instr >> 6) & 0xf
     else:
-        n |= adr & 0xf
-    return n
+        row = adr & 0xf
+    return make_adr(instr_next_colh(instr), instr_next_coll(instr), row)
 
 def instr_return_adr(instr):
     return make_adr(0, bf(instr, 21, 19), bf(instr, 13, 10))
