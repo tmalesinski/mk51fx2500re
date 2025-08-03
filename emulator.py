@@ -3,7 +3,6 @@ from instr import *
 import analyze
 from analyze import instr_next_adr, instr_alu_sub
 from analyze import instr_selr_to_r0, instr_selr_to_r1, instr_we
-from analyze import alu_input0_structured, alu_input1_structured
 from analyze import decode_instr
 from analyze import Microcode, load_microcode_from_txt
 from windows import decode_window, has_decimal_adjustment
@@ -35,25 +34,25 @@ class Emulator:
 
     def _get_input(self, inp, field):
         fs = slice(field[0], field[1] + 1)
-        if isinstance(inp, analyze.RegisterInput):
+        if isinstance(inp, RegisterInput):
             return self.regs[inp.n][fs]
-        if isinstance(inp, analyze.KeyCodeInput):
+        if isinstance(inp, KeyCodeInput):
             r = [0] * 15
             r[13 - self.keycode[0]] = self.keycode[1]
             return r[fs]
-        if isinstance(inp, analyze.ConstantInput):
+        if isinstance(inp, ConstantInput):
             r = [0] * (field[1] - field[0] + 1)
             r[0] = inp.n
             return r
         # TODO: Kr0Input?
-        if isinstance(inp, analyze.MaskedRegisterInput):
+        if isinstance(inp, MaskedRegisterInput):
             return [d & inp.mask for d in self.regs[inp.n][fs]]
-        if isinstance(inp, analyze.OredRegisterInput):
+        if isinstance(inp, OredRegisterInput):
             return [d | inp.mask for d in self.regs[inp.n][fs]]
-        if isinstance(inp, analyze.PushDigitInput):
+        if isinstance(inp, PushDigitInput):
             r = self.regs[inp.n][fs]
             return r[1:] + [inp.digit]
-        if isinstance(inp, analyze.LeftShiftedRegisterInput):
+        if isinstance(inp, LeftShiftedRegisterInput):
             r = self.regs[inp.n][fs]
             return [0] + r[:-1]
         raise NotImplementedError(inp)
@@ -62,8 +61,8 @@ class Emulator:
         fcode = instr_field(instr)
         field = decode_window(fcode)
 
-        a0 = alu_input0_structured(instr)
-        a1 = alu_input1_structured(instr)
+        a0 = alu_input0(instr)
+        a1 = alu_input1(instr)
 
         v0 = self._get_input(a0, field)
         v1 = self._get_input(a1, field)

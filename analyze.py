@@ -175,97 +175,6 @@ def mcode_cmd_info(cmd):
 def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
 
-class AluInput:
-    def __str__(self):
-        raise NotImplementedError()
-
-    def always_zero(self):
-        return False
-
-class RegisterInput(AluInput):
-    def __init__(self, n):
-        self.n = n
-
-    def __str__(self):
-        return f"R{self.n}"
-
-class KeyCodeInput(AluInput):
-    def __str__(self):
-        return f"KEY"
-
-class ConstantInput(AluInput):
-    def __init__(self, n):
-        self.n = n
-
-    def __str__(self):
-        return "0" if self.n == 0 else f"#{self.n:x}.L"
-
-    def always_zero(self):
-        return self.n == 0
-
-class Kr0Input(AluInput):
-    def __str__(self):
-        return "KR0?"
-
-class MaskedRegisterInput(AluInput):
-    def __init__(self, n, mask):
-        self.n = n
-        self.mask = mask
-
-    def __str__(self):
-        return f"R{self.n}&#{self.mask:x}"
-
-    def always_zero(self):
-        return self.mask == 0
-
-class OredRegisterInput(AluInput):
-    def __init__(self, n, mask):
-        self.n = n
-        self.mask = mask
-
-    def __str__(self):
-        return f"#{self.mask:x}.L|R{self.n}"
-
-class PushDigitInput(AluInput):
-    def __init__(self, n, digit):
-        self.n = n
-        self.digit = digit
-
-    def __str__(self):
-        return f"#{self.digit:x}.H|(R{self.n} SHR)"
-
-class LeftShiftedRegisterInput(AluInput):
-    def __init__(self, n):
-        self.n = n
-
-    def __str__(self):
-        return f"R{self.n} SHL"
-
-
-def alu_input1_structured(cmd):
-    res = []
-    if bit(cmd, 18):
-        res.append(RegisterInput(1 if bit(cmd, 17) else 0))
-    if not bit(cmd, 18) and bit(cmd, 17):
-        if bf(cmd, 9, 6) == 0 and instr_insel0(cmd):
-            res.append(KeyCodeInput())
-        if bf(cmd, 9, 6) != 0:
-            res.append(ConstantInput(bf(cmd, 9, 6)))
-    if instr_shl(cmd):
-        if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
-            # TODO: does it only happen with one element fields and
-            # is it then or with an immediate?
-            res.append(RegisterInput(bf(cmd, 21, 19)))
-    if not res:
-        res.append(ConstantInput(0))
-    if len(res) == 2:
-        if (isinstance(res[0], ConstantInput) and
-            isinstance(res[1], RegisterInput)):
-            res = [OredRegisterInput(res[1].n, res[0].n)]
-    assert len(res) == 1, res
-    return res[0]
-
-
 def alu_input1_old(cmd):
     res = []
     imm = f"#{bf(cmd, 9, 6):x}"
@@ -286,35 +195,12 @@ def alu_input1_old(cmd):
         res.append("0")
     return "|".join(res)
 
-def alu_input1(cmd):
+def alu_input1_with_diff(cmd):
     old_res = alu_input1_old(cmd)
-    new_res = str(alu_input1_structured(cmd))
+    new_res = str(alu_input1(cmd))
     if old_res != new_res:
         print(f"{old_res}   !=   {new_res}")
     return old_res
-
-def alu_input0_structured(cmd):
-    imm = bf(cmd, 9, 6)
-    selr = bf(cmd, 21, 19)
-    res = []
-    if bf(cmd, 18, 17) != 0 and instr_insel0(cmd):
-        res.append(RegisterInput(selr))
-    if instr_masked_reg(cmd) and bf(cmd, 9, 6) == 0:
-        res.append(Kr0Input())
-    if instr_masked_reg(cmd) and bf(cmd, 9, 6) != 0:
-        res.append(MaskedRegisterInput(selr, imm))
-    if is_const(cmd):
-        res.append(PushDigitInput(selr, imm))
-    if instr_shl(cmd):
-        w = decode_window(bf(cmd, 13, 10))
-        if w[0] == w[1]:
-            res.append(ConstantInput(0))
-        else:
-            res.append(LeftShiftedRegisterInput(selr))
-    if not res:
-        res.append(ConstantInput(0))
-    assert len(res) == 1
-    return res[0]
 
 def alu_input0_old(cmd):
     imm = f"#{bf(cmd, 9, 6):x}"
@@ -339,9 +225,9 @@ def alu_input0_old(cmd):
     return ",".join(res)
 
 
-def alu_input0(cmd):
+def alu_input0_with_diff(cmd):
     old_res = alu_input0_old(cmd)
-    new_res = str(alu_input0_structured(cmd))
+    new_res = str(alu_input0(cmd))
     if old_res != new_res:
         print(f"{old_res}   !=   {new_res}")
     return old_res
@@ -363,8 +249,8 @@ def return_adrs(adr, cmd, ret_cols=None):
     return [(r | padr, l) for r, l in rcols]
 
 def branch_c_possible(cmd):
-    a0 = alu_input0_structured(cmd)
-    a1 = alu_input1_structured(cmd)
+    a0 = alu_input0(cmd)
+    a1 = alu_input1(cmd)
     # TODO: seems wrong on sub with a0 == 0 (if it happens at all)
     return not a0.always_zero() and not a1.always_zero()
 
@@ -381,7 +267,7 @@ def cz_possible(cmd, c, z):
         return cz_possible(cmd, True, z) or cz_possible(cmd, False, z)
     if z is None:
         return cz_possible(cmd, c, True) or cz_possible(cmd, c, False)
-    if c and alu_input1_structured(cmd).always_zero():
+    if c and alu_input1(cmd).always_zero():
         return False
     if c and z and instr_alu_sub(cmd):
         return False
@@ -490,10 +376,10 @@ def decode_main_instr(adr, cmd):
     if is_return(cmd):
         return f"RETURN {instr_next_adr(adr, cmd):03x}"
     sub = instr_alu_sub(cmd)
-    a0 = alu_input0(cmd)
-    a0s = alu_input0_structured(cmd)
-    a1 = alu_input1(cmd)
-    a1s = alu_input1_structured(cmd)
+    a0 = alu_input0_with_diff(cmd)
+    a0s = alu_input0(cmd)
+    a1 = alu_input1_with_diff(cmd)
+    a1s = alu_input1(cmd)
     selrn = bf(cmd, 21, 19)
     selr = f"R{selrn}"
     if instr_we(cmd):
@@ -583,7 +469,8 @@ def print_cmd_info(adr, cmd):
     if not di: di = "???"
     print(f"{adr:03x}: {di:15s}")
     print(f"                     "
-          f"alu0: {alu_input0(cmd):7s} alu1: {alu_input1(cmd):7s}")
+          f"alu0: {alu_input0_with_diff(cmd):7s} "
+          f"alu1: {alu_input1_with_diff(cmd):7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
@@ -652,7 +539,8 @@ def instruction_table(imm=3):
     for instr in range(32):
         cmd = (instr << 14) | (5 << 19) | (imm << 6)
         print(f"{instr:05b} "
-              f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
+              f"{alu_input0_with_diff(cmd):10s} "
+              f"{alu_input1_with_diff(cmd):10s} "
               f"rowadr:{int(instr_has_next_row(cmd))} "
               f"we: {int(instr_we(cmd))} "
               f"sub: {int(instr_alu_sub(cmd))} "

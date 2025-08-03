@@ -1,4 +1,5 @@
 from bits import bf, bit
+import windows
 
 __all__ = [
     "make_adr",
@@ -8,7 +9,11 @@ __all__ = [
     "is_jump", "is_call", "is_return", "is_const",
     "is_branch_z", "is_branch_c",
     "instr_masked_reg", "instr_shl", "instr_insel0", "instr_field_en",
-    "instr_selr_to_r0", "instr_selr_to_r1", "instr_alu_sub", "instr_we"
+    "instr_selr_to_r0", "instr_selr_to_r1", "instr_alu_sub", "instr_we",
+    "RegisterInput", "KeyCodeInput", "ConstantInput", "Kr0Input",
+    "MaskedRegisterInput", "OredRegisterInput", "PushDigitInput",
+    "LeftShiftedRegisterInput",
+    "alu_input0", "alu_input1"
 ]
 
 # TODO: consider changing the convention to row, colh, coll.
@@ -95,3 +100,116 @@ def instr_we(instr):
     int1 = bf(instr, 18, 17) == 0 or bit(instr, 15)
     int2 = bf(instr, 15, 14) != 2
     return not (int1 and int2)
+
+class AluInput:
+    def __str__(self):
+        raise NotImplementedError()
+
+    def always_zero(self):
+        return False
+
+class RegisterInput(AluInput):
+    def __init__(self, n):
+        self.n = n
+
+    def __str__(self):
+        return f"R{self.n}"
+
+class KeyCodeInput(AluInput):
+    def __str__(self):
+        return f"KEY"
+
+class ConstantInput(AluInput):
+    def __init__(self, n):
+        self.n = n
+
+    def __str__(self):
+        return "0" if self.n == 0 else f"#{self.n:x}.L"
+
+    def always_zero(self):
+        return self.n == 0
+
+class Kr0Input(AluInput):
+    def __str__(self):
+        return "KR0?"
+
+class MaskedRegisterInput(AluInput):
+    def __init__(self, n, mask):
+        self.n = n
+        self.mask = mask
+
+    def __str__(self):
+        return f"R{self.n}&#{self.mask:x}"
+
+    def always_zero(self):
+        return self.mask == 0
+
+class OredRegisterInput(AluInput):
+    def __init__(self, n, mask):
+        self.n = n
+        self.mask = mask
+
+    def __str__(self):
+        return f"#{self.mask:x}.L|R{self.n}"
+
+class PushDigitInput(AluInput):
+    def __init__(self, n, digit):
+        self.n = n
+        self.digit = digit
+
+    def __str__(self):
+        return f"#{self.digit:x}.H|(R{self.n} SHR)"
+
+class LeftShiftedRegisterInput(AluInput):
+    def __init__(self, n):
+        self.n = n
+
+    def __str__(self):
+        return f"R{self.n} SHL"
+
+
+def alu_input0(instr):
+    imm = bf(instr, 9, 6)
+    selr = bf(instr, 21, 19)
+    res = []
+    if bf(instr, 18, 17) != 0 and instr_insel0(instr):
+        res.append(RegisterInput(selr))
+    if instr_masked_reg(instr) and bf(instr, 9, 6) == 0:
+        res.append(Kr0Input())
+    if instr_masked_reg(instr) and bf(instr, 9, 6) != 0:
+        res.append(MaskedRegisterInput(selr, imm))
+    if is_const(instr):
+        res.append(PushDigitInput(selr, imm))
+    if instr_shl(instr):
+        w = windows.decode_window(bf(instr, 13, 10))
+        if w[0] == w[1]:
+            res.append(ConstantInput(0))
+        else:
+            res.append(LeftShiftedRegisterInput(selr))
+    if not res:
+        res.append(ConstantInput(0))
+    assert len(res) == 1
+    return res[0]
+
+def alu_input1(instr):
+    res = []
+    if bit(instr, 18):
+        res.append(RegisterInput(1 if bit(instr, 17) else 0))
+    if not bit(instr, 18) and bit(instr, 17):
+        if bf(instr, 9, 6) == 0 and instr_insel0(instr):
+            res.append(KeyCodeInput())
+        if bf(instr, 9, 6) != 0:
+            res.append(ConstantInput(bf(instr, 9, 6)))
+    if instr_shl(instr):
+        if not bit(instr, 13) and (not bit(instr, 12) or bit(instr, 11)):
+            # TODO: does it only happen with one element fields and
+            # is it then or with an immediate?
+            res.append(RegisterInput(bf(instr, 21, 19)))
+    if not res:
+        res.append(ConstantInput(0))
+    if len(res) == 2:
+        if (isinstance(res[0], ConstantInput) and
+            isinstance(res[1], RegisterInput)):
+            res = [OredRegisterInput(res[1].n, res[0].n)]
+    assert len(res) == 1, res
+    return res[0]
