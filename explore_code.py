@@ -1,5 +1,5 @@
 from emulator import Emulator
-from analyze import Microcode
+from program import Microcode
 
 
 K1 = (0, 4)

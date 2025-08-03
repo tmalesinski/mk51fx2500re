@@ -4,6 +4,7 @@ import analyze
 from analyze import instr_next_adr, instr_alu_sub
 from analyze import instr_selr_to_r0, instr_selr_to_r1, instr_we
 from analyze import decode_instr
+from program import *
 from windows import decode_window, has_decimal_adjustment
 
 def instr_field(instr):
