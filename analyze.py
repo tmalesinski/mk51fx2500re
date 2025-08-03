@@ -193,9 +193,13 @@ def dins3(cmd):
 def instr_field_en(instr):
     return not (bf(instr, 18, 16) == 0 and bf(instr, 15, 14) != 2)
 
-# Swap R0 with the selected one.
-def dins11(cmd):
-    return not (bf(cmd, 17, 14) == 5)
+# Move the selected register to R0.
+def instr_selr_to_r0(cmd):
+    return bf(cmd, 17, 14) == 5
+
+# Move the selected register to R1.
+def instr_selr_to_r1(instr):
+    return bf(instr, 18, 14) == 0x1d or bf(instr, 18, 14) == 4
 
 # Add/sub.
 def instr_alu_sub(instr):
@@ -206,10 +210,6 @@ def instr_we(instr):
     int1 = bf(instr, 18, 17) == 0 or bit(instr, 15)
     int2 = bf(instr, 15, 14) != 2
     return not (int1 and int2)
-
-# Swap R1 with the selected one.
-def dins14(cmd):
-    return bf(cmd, 18, 14) == 0x1d or bf(cmd, 18, 14) == 4
 
 # dins15: selected reg when constant, added past ALU so that the register
 # gets shifted
@@ -568,17 +568,17 @@ def decode_main_instr(adr, cmd):
             if a1s.always_zero():
                 return f"CLR {dest}"
             assert not sub
-            if not dins11(cmd):
+            if instr_selr_to_r0(cmd):
                 assert a1 == "R0"
                 return f"SWAP {a1},{dest}"
-            elif dins14(cmd):
+            elif instr_selr_to_r1(cmd):
                 assert a1 == "R1"
                 return f"SWAP {a1},{dest}"
             elif isinstance(a1s, OredRegisterInput) and a1s.n == selrn:
                 return f"OR #{a1s.mask:x},{dest}"
             else:
                 return f"MOV {a1s},{dest}"
-        assert dins11(cmd) and not dins14(cmd)
+        assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if a1s.always_zero():
             if isinstance(a0s, MaskedRegisterInput) and a0s.n == selrn:
                 return f"AND #{a0s.mask:x},{dest}"
@@ -598,13 +598,13 @@ def decode_main_instr(adr, cmd):
                 return f"{op} {a0},{a1s},{dest}"
     else:  # not we
         if a0s.always_zero() and a1s.always_zero():
-            if not dins11(cmd):
+            if instr_selr_to_r0(cmd):
                 return f"MOV {selr},R0"
-            elif dins14(cmd):
+            elif instr_selr_to_r1(cmd):
                 return f"MOV {selr},R1"
             else:
                 return f"NOP{bf(cmd, 18, 14)}"
-        assert dins11(cmd) and not dins14(cmd)
+        assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if sub:
             if a1s.always_zero() and isinstance(a0s, MaskedRegisterInput):
                 return f"TST #{a0s.mask:x},R{a0s.n}"
@@ -725,8 +725,8 @@ def instruction_table(imm=3):
               f"brc: {int(is_branch_c(cmd))} "
               f"call: {int(is_call(cmd))} "
               f"ret: {int(is_return(cmd))} "
-              f"di11: {int(dins11(cmd))} "
-              f"di14: {int(dins14(cmd))} "
+              f"tor0: {int(instr_selr_to_r0(cmd))} "
+              f"tor1: {int(instr_selr_to_r1(cmd))} "
               f"di0: {int(dins0(cmd))} "
               f"cns: {int(is_const(cmd))} "
               f"di2: {int(dins2(cmd))} "
