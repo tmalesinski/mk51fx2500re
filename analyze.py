@@ -189,9 +189,9 @@ def dins2(cmd):
 def dins3(cmd):
     return bf(cmd, 15, 14) != 1
 
-# Enable window (otherwise finish instruction on the next digit)
-def dins10(cmd):
-    return not (bf(cmd, 18, 16) == 0 and bf(cmd, 15, 14) != 2)
+# Enable field (otherwise finish instruction on the next digit)
+def instr_field_en(instr):
+    return not (bf(instr, 18, 16) == 0 and bf(instr, 15, 14) != 2)
 
 # Swap R0 with the selected one.
 def dins11(cmd):
@@ -619,7 +619,7 @@ def decode_main_instr(adr, cmd):
 
 def decode_instr(adr, cmd, skip_adr=False):
     i = decode_main_instr(adr, cmd)
-    if dins10(cmd):
+    if instr_field_en(cmd):
         wcode = bf(cmd, 13, 10)
         w = decode_window(wcode)
         if w[0] != w[1]:
@@ -734,7 +734,7 @@ def instruction_table(imm=3):
               f"cns: {int(is_const(cmd))} "
               f"di2: {int(dins2(cmd))} "
               f"di3: {int(dins3(cmd))} "
-              f"di10: {int(dins10(cmd))}")
+              f"fen: {int(instr_field_en(cmd))}")
 
         print(decode_instr(0, cmd))
 
