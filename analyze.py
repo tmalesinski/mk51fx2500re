@@ -175,43 +175,6 @@ def mcode_cmd_info(cmd):
 def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
 
-# ALU input 0: masked selected shift reg or KR0
-def instr_masked_reg(cmd):
-    return bf(cmd, 18, 15) == 3
-
-# ALU input 0: selected shift reg but only on some windows
-# ALU input 1: delayed selected reg when in window
-def instr_shl(cmd):
-    return bf(cmd, 18, 14) == 0xd
-
-# Partial signal used in ALU input selection.
-# ALU input 0: selected shift reg (with particular MCD 17 and MCD 18)
-# ALU input 1: KEY (wih particular MCD17 and MCD 18)
-def instr_insel0(cmd):
-    return bf(cmd, 15, 14) != 1
-
-# Enable field (otherwise finish instruction on the next digit)
-def instr_field_en(instr):
-    return not (bf(instr, 18, 16) == 0 and bf(instr, 15, 14) != 2)
-
-# Move the selected register to R0.
-def instr_selr_to_r0(cmd):
-    return bf(cmd, 17, 14) == 5
-
-# Move the selected register to R1.
-def instr_selr_to_r1(instr):
-    return bf(instr, 18, 14) == 0x1d or bf(instr, 18, 14) == 4
-
-# Add/sub.
-def instr_alu_sub(instr):
-    return not (bf(instr, 15, 14) == 1 or not bit(instr, 16))
-
-# Write enable for shift registers
-def instr_we(instr):
-    int1 = bf(instr, 18, 17) == 0 or bit(instr, 15)
-    int2 = bf(instr, 15, 14) != 2
-    return not (int1 and int2)
-
 class AluInput:
     def __str__(self):
         raise NotImplementedError()
@@ -384,10 +347,6 @@ def alu_input0(cmd):
     return old_res
 
 
-def has_next_row(cmd):
-    return (bf(cmd, 18, 17) != 1 and bf(cmd, 18, 14) != 2 and
-            bf(cmd, 18, 15) != 3)
-
 # TODO: stop using, it does not check ret_cols
 def return_adr(adr, cmd):
     rcol = cons_adr(instr_next_colh(cmd), 0, 0)
@@ -402,14 +361,6 @@ def return_adrs(adr, cmd, ret_cols=None):
             rcols = rs
     padr = (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
     return [(r | padr, l) for r, l in rcols]
-
-def instr_next_adr(adr, cmd):
-    n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
-    if has_next_row(cmd):
-        n |= (cmd >> 6) & 0xf
-    else:
-        n |= adr & 0xf
-    return n
 
 def is_branch_z(cmd):
     return bf(cmd, 16, 15) == 3 and ((bf(cmd, 18, 14) & 0x19) != 0)
@@ -716,7 +667,7 @@ def instruction_table(imm=3):
         cmd = (instr << 14) | (5 << 19) | (imm << 6)
         print(f"{instr:05b} "
               f"{alu_input0(cmd):10s} {alu_input1(cmd):10s} "
-              f"rowadr:{int(has_next_row(cmd))} "
+              f"rowadr:{int(instr_has_next_row(cmd))} "
               f"we: {int(instr_we(cmd))} "
               f"sub: {int(instr_alu_sub(cmd))} "
               f"brz: {int(is_branch_z(cmd))} "
