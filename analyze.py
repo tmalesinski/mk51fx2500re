@@ -406,13 +406,13 @@ def return_adrs(adr, cmd, ret_cols=None):
     # TODO: fail on missing returns instead of this guess?
     rcols = [(cons_adr(instr_next_colh(cmd), 0, 0), "")]
     if ret_cols is not None:
-        rs = ret_cols.get(imm_next_adr(adr, cmd), None)
+        rs = ret_cols.get(instr_next_adr(adr, cmd), None)
         if rs is not None:
             rcols = rs
     padr = (bf(cmd, 21, 19) << 4) | bf(cmd, 13, 10)
     return [(r | padr, l) for r, l in rcols]
 
-def imm_next_adr(adr, cmd):
+def instr_next_adr(adr, cmd):
     n = ((cmd & 7) << 7) | (((cmd >> 3) & 7) << 4)
     if has_next_row(cmd):
         n |= (cmd >> 6) & 0xf
@@ -446,7 +446,7 @@ def next_adr(adr, cmd):
         return return_adr(adr, cmd)
     if is_return(cmd):
         return None
-    return imm_next_adr(adr, cmd)
+    return instr_next_adr(adr, cmd)
 
 def cz_possible(cmd, c, z):
     if c is None:
@@ -520,7 +520,7 @@ def outgoing_edges(adr, cmd, ret_cols):
         return return_adrs(adr, cmd, ret_cols)
     if is_return(cmd):
         return []
-    na = imm_next_adr(adr, cmd)
+    na = instr_next_adr(adr, cmd)
     c_enabled = is_branch_c(cmd) and na & 0x10 == 0
     z_enabled = is_branch_z(cmd) and na & 0x20 == 0
     edges = []
@@ -556,11 +556,11 @@ def outgoing_edges(adr, cmd, ret_cols):
 
 def decode_main_instr(adr, cmd):
     if is_jump(cmd):
-        return f"JUMP {imm_next_adr(adr, cmd):03x}"
+        return f"JUMP {instr_next_adr(adr, cmd):03x}"
     if is_call(cmd):
-        return f"CALL {imm_next_adr(adr, cmd):03x}"
+        return f"CALL {instr_next_adr(adr, cmd):03x}"
     if is_return(cmd):
-        return f"RETURN {imm_next_adr(adr, cmd):03x}"
+        return f"RETURN {instr_next_adr(adr, cmd):03x}"
     sub = dins12(cmd)
     a0 = alu_input0(cmd)
     a0s = alu_input0_structured(cmd)
@@ -636,7 +636,7 @@ def decode_instr(adr, cmd, skip_adr=False):
         if is_call(cmd):
             i += f" R:{instr_return_adr(cmd):03x}"
         elif not is_return(cmd) and not is_jump(cmd):
-            na = imm_next_adr(adr, cmd)
+            na = instr_next_adr(adr, cmd)
             i += f" N:{na:03x}"
             if is_branch_c(cmd) and na & 0x10 == 0 and branch_c_possible(cmd):
                 i += ",C"
@@ -760,7 +760,7 @@ def call_return_cols(mc):
                     cons_adr(instr_next_colh(cmd), instr_next_coll(cmd), 0))
                 continue
             if is_call(cmd):
-                ca = imm_next_adr(a, cmd)
+                ca = instr_next_adr(a, cmd)
                 if ca not in ret_cols:
                     print("  " * level + f"  recursive search for {ca:03x}")
                     find_returns(ca, level + 1)
@@ -805,7 +805,7 @@ def call_return_cols(mc):
     for a in range(0x400):
         cmd = mc.get(a)
         if is_call(cmd):
-            ca = imm_next_adr(a, cmd)
+            ca = instr_next_adr(a, cmd)
             if ca not in ret_cols:
                 r = find_returns(ca)
                 # TODO: remove the rest?

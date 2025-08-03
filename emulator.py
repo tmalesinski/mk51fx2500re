@@ -2,7 +2,7 @@ from bits import *
 from instr import *
 import analyze
 from instr import is_call, is_return, instr_return_adr
-from analyze import imm_next_adr
+from analyze import instr_next_adr
 from analyze import is_sub, dins11, dins13, dins14, is_branch_z, is_branch_c
 from analyze import alu_input0_structured, alu_input1_structured
 from analyze import decode_instr
@@ -93,7 +93,7 @@ class Emulator:
         if dins13(instr):  # we
             self.regs[selr][fs] = res
 
-        self.pc = imm_next_adr(self.pc, instr)
+        self.pc = instr_next_adr(self.pc, instr)
         if is_branch_c(instr) and c:
             self.pc |= 0x10
         if is_branch_z(instr) and not all([d == 0 for d in res]):
@@ -101,7 +101,7 @@ class Emulator:
 
     def step(self):
         instr = self.mc.get(self.pc)
-        next_adr = imm_next_adr(self.pc, instr)
+        next_adr = instr_next_adr(self.pc, instr)
 
         if is_call(instr):
             self.stack[self.sp] = instr_return_adr(instr)
