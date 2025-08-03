@@ -1,5 +1,5 @@
 from emulator import Emulator
-from analyze import Microcode, load_microcode_from_txt
+from analyze import Microcode
 
 
 K1 = (0, 4)
@@ -32,7 +32,7 @@ KINV = (6, 2)
 KDMS = (6, 12)
 
 def create_emulator():
-    return Emulator(Microcode(load_microcode_from_txt()))
+    return Emulator(Microcode.from_file())
 
 def call(e, adr):
     e.pc = adr

@@ -8,7 +8,7 @@ import analyze
 
 class TestAnalyze(unittest.TestCase):
     def setUp(self):
-        self.program = analyze.Microcode(analyze.load_microcode_from_txt())
+        self.program = analyze.Microcode.from_file()
 
     def test_microcode_paths(self):
         with redirect_stdout(StringIO()):

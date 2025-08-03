@@ -6,25 +6,25 @@ from bits import *
 from instr import *
 from windows import decode_window, has_decimal_adjustment
 
-def load_microcode_from_txt():
-    res = []
-    with open("mk51dump.txt") as f:
-        for line in f.readlines():
-            res.append(np.array(list(line.strip())) != "0")
-    return np.array(res).astype(int)
-
-
 class Microcode:
-    def __init__(self, raw):
-        self._raw = raw
+    def __init__(self, code):
+        self._code = code
+
+    @staticmethod
+    def from_file(path="mk51dump.txt"):
+        code = []
+        with open("mk51dump.txt") as f:
+            for line in f.readlines():
+                line = line.strip()
+                assert len(line) == 16 * 22, len(line)
+                for r in range(16):
+                    code.append(
+                        int(line[r::16][::-1], base=2) ^ ((1 << 22) - 1))
+        return Microcode(code)
 
     def get(self, adr):
-        a = adr // 16
-        b = adr % 16
-        bits = self._raw[a, b::16]
-        assert len(bits) == 22
-        bits = 1 - bits
-        return np.sum(np.left_shift(1, np.mgrid[0:22]) * bits)
+        return self._code[adr]
+
 
 # TODO: delete
 def cons_adr(colh, coll, row):
