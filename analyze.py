@@ -175,64 +175,6 @@ def mcode_cmd_info(cmd):
 def cons_adr(colh, coll, row):
     return make_adr(colh, coll, row)
 
-def alu_input1_old(cmd):
-    res = []
-    imm = f"#{bf(cmd, 9, 6):x}"
-    selr = f"R{bf(cmd, 21, 19)}"
-    if bit(cmd, 18):
-        res.append("R1" if bit(cmd, 17) else "R0")
-    if not bit(cmd, 18) and bit(cmd, 17):
-        if bf(cmd, 9, 6) == 0 and instr_insel0(cmd):
-            res.append("KEY")
-        if bf(cmd, 9, 6) != 0:
-            res.append(f"{imm}.L")
-    if instr_shl(cmd):
-        if not bit(cmd, 13) and (not bit(cmd, 12) or bit(cmd, 11)):
-            # TODO: does it only happen with one element fields and
-            # is it then or with an immediate?
-            res.append(f"{selr}")
-    if not res:
-        res.append("0")
-    return "|".join(res)
-
-def alu_input1_with_diff(cmd):
-    old_res = alu_input1_old(cmd)
-    new_res = str(alu_input1(cmd))
-    if old_res != new_res:
-        print(f"{old_res}   !=   {new_res}")
-    return old_res
-
-def alu_input0_old(cmd):
-    imm = f"#{bf(cmd, 9, 6):x}"
-    selr = f"R{bf(cmd, 21, 19)}"
-    res = []
-    if bf(cmd, 18, 17) != 0 and instr_insel0(cmd):
-        res.append(selr)
-    if instr_masked_reg(cmd) and bf(cmd, 9, 6) == 0:
-        res.append("KR0?")
-    if instr_masked_reg(cmd) and bf(cmd, 9, 6) != 0:
-        res.append(f"{selr}&{imm}")
-    if is_const(cmd):
-        res.append(f"{imm}.H|({selr} SHR)")
-    if instr_shl(cmd):
-        w = decode_window(bf(cmd, 13, 10))
-        if w[0] == w[1]:
-            res.append("0")
-        else:
-            res.append(f"{selr} SHL")
-    if not res:
-        res.append("0")
-    return ",".join(res)
-
-
-def alu_input0_with_diff(cmd):
-    old_res = alu_input0_old(cmd)
-    new_res = str(alu_input0(cmd))
-    if old_res != new_res:
-        print(f"{old_res}   !=   {new_res}")
-    return old_res
-
-
 # TODO: stop using, it does not check ret_cols
 def return_adr(adr, cmd):
     rcol = cons_adr(instr_next_colh(cmd), 0, 0)
@@ -376,10 +318,11 @@ def decode_main_instr(adr, cmd):
     if is_return(cmd):
         return f"RETURN {instr_next_adr(adr, cmd):03x}"
     sub = instr_alu_sub(cmd)
-    a0 = alu_input0_with_diff(cmd)
     a0s = alu_input0(cmd)
-    a1 = alu_input1_with_diff(cmd)
+    # TODO: stop using a0 and a1, rename a0s, a1s to a0, a1
+    a0 = str(a0s)
     a1s = alu_input1(cmd)
+    a1 = str(a1s)
     selrn = bf(cmd, 21, 19)
     selr = f"R{selrn}"
     if instr_we(cmd):
@@ -469,8 +412,7 @@ def print_cmd_info(adr, cmd):
     if not di: di = "???"
     print(f"{adr:03x}: {di:15s}")
     print(f"                     "
-          f"alu0: {alu_input0_with_diff(cmd):7s} "
-          f"alu1: {alu_input1_with_diff(cmd):7s}")
+          f"alu0: {alu_input0(cmd)!s:7s} alu1: {alu_input1(cmd)!s:7s}")
     print(f"                     ins:{bf(cmd, 18, 14):05b} "
           f"reg/stc:{bf(cmd, 21, 19):01x} "
           f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
@@ -539,8 +481,8 @@ def instruction_table(imm=3):
     for instr in range(32):
         cmd = (instr << 14) | (5 << 19) | (imm << 6)
         print(f"{instr:05b} "
-              f"{alu_input0_with_diff(cmd):10s} "
-              f"{alu_input1_with_diff(cmd):10s} "
+              f"{alu_input0(cmd)!s:10s} "
+              f"{alu_input1(cmd)!s:10s} "
               f"rowadr:{int(instr_has_next_row(cmd))} "
               f"we: {int(instr_we(cmd))} "
               f"sub: {int(instr_alu_sub(cmd))} "
