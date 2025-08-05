@@ -6,9 +6,6 @@ import typing
 
 from dataclasses import dataclass
 
-def load_image():
-    return imageio.imread("img/mk51_rom_die.jpg")
-
 NROWS = 16 * 5
 NCOLS = 16 * 22
 
@@ -30,33 +27,59 @@ MK51_ROM = ImageDesc(
     path = "img/mk51_rom_die.jpg",
     width = 4096,
     height = 1396,
-    rows_corners = [[(510, 197.5), (494.6, 1108.5)],
-                    [(3743.1, 202.0), (0, 0)]],
-    cols_corners = [[(534.7, 0), (3712.7, 0)], [(0, 0), (0, 0)]])
+    rows_corners = [[(510, 197.5), (3743.1, 202.0)],
+                    [(494.6, 1108.5), (3757.0, 1113.6)]],
+    cols_corners = [[(534.7, 190.2), (3712.7, 195.3)],
+                    [(533.5, 1128.0), (3712.4, 1120.8)]])
 
-# TODO: delete
-R00 = (510, 197.5)
-R10 = (3743.1, 202.0)
-R01 = (494.6, 1108.5)
+# From https://x.com/travisgoodspeed/status/1685675366352896000
+FX2500_ROM = ImageDesc(
+    path = "img/fx2500_rom_die.jpeg",
+    width = 4096,
+    height = 1643,
+    rows_corners = [[(635.8, 516.4), (3610.7, 466.0)],
+                    [(663.2, 1303.0), (3636.4, 1253.3)]],
+    cols_corners = [[(664.3, 510.3), (3583.8, 458.9)],
+                    [(677.6, 1320.2), (3597.6, 1260.9)]])
 
-CX0 = 534.7
-CX1 = 3712.7
+# From https://x.com/travisgoodspeed/status/1685486408251707392
+FX2500_ROM_2 = ImageDesc(
+    path = "img/fx2500_rom_die2.jpeg",
+    width = 4096,
+    height = 1428,
+    rows_corners = [[(539.2, 205.4), (3858.0, 306.8)],
+                    [(527.8, 1087.5), (3844.0, 1191.3)]],
+    cols_corners = [[(571.2, 200.2), (3828.8, 299.1)],
+                    [(543.2, 1109.8), (3801.4, 1197.3)]])
 
 def load_image(desc):
     img = imageio.imread(desc.path)
-    gray = np.mean(img, axis=-1)
+    # gray = np.mean(img, axis=-1)
+    gray = scipy.ndimage.gaussian_filter(
+        scipy.ndimage.laplace(np.mean(img, axis=-1)), 2)
     return Image(desc, img, gray)
 
 def bit_pos(desc, i, j):
-    cx0 = desc.cols_corners[0][0][0]
-    cx1 = desc.cols_corners[0][1][0]
-    r00 = desc.rows_corners[0][0]
-    r01 = desc.rows_corners[0][1]
-    r10 = desc.rows_corners[1][0]
-    x = cx0 + (cx1 - cx0) * j / (16 * 22 - 1)
-    y = (r00[1] + (r01[1] - r00[1]) * i / (16 * 5 - 1) +
-         (x - r00[0]) / (r10[0] - r00[0]) * (r10[1] - r00[1]))
-    return (x, y)
+    def interp(a, b, k, n):
+        return a + (b - a) * k / n
+
+    def point(a, b, k, n):
+        return tuple([interp(a[t], b[t], k, n - 1) for t in range(2)])
+
+    def intersection(a, b, c, d):
+        m = np.array([
+            [b[0] - a[0], c[0] - d[0]],
+            [b[1] - a[1], c[1] - d[1]]])
+        r = np.array([c[0] - a[0], c[1] - a[1]])
+        t = np.linalg.solve(m, r)
+        return (a[0] * (1 - t[0]) + b[0] * t[0],
+                a[1] * (1 - t[0]) + b[1] * t[0])
+
+    return intersection(
+        point(desc.rows_corners[0][0], desc.rows_corners[1][0], i, NROWS),
+        point(desc.rows_corners[0][1], desc.rows_corners[1][1], i, NROWS),
+        point(desc.cols_corners[0][0], desc.cols_corners[0][1], j, NCOLS),
+        point(desc.cols_corners[1][0], desc.cols_corners[1][1], j, NCOLS))
 
 
 def get_area(image, i, j, r, norm=False):
@@ -142,17 +165,17 @@ def kmeans(bits, m0, m1):
             m.append(np.mean(bits[closer == i], axis=0))
     return tuple(m)
 
-def read_with_kmeans_on_rows(image, start, limit):
+def read_with_kmeans_on_tile(image, start_row, start_col, limit_row, limit_col):
     norm = False
     bits = []
-    nr = limit - start
-    nc = NCOLS
-    for i in range(start, limit):
-        for j in range(NCOLS):
-            bits.append(get_area(image, i, j, 3, norm=norm).flatten())
+    nr = limit_row - start_row
+    nc = limit_col - start_col
+    for i in range(start_row, limit_row):
+        for j in range(start_col, limit_col):
+            bits.append(get_area(image, i, j, 5, norm=norm).flatten())
     bits = np.array(bits)
-    ex1 = get_area(image, 1, 1, 3, norm=norm).flatten()
-    ex0 = get_area(image, 2, 1, 3, norm=norm).flatten()
+    ex1 = get_area(image, 1, 1, 5, norm=norm).flatten()
+    ex0 = get_area(image, 2, 1, 5, norm=norm).flatten()
     m = kmeans(bits, ex0, ex1)
     d = dist_from_means(bits, m)
 
@@ -160,12 +183,12 @@ def read_with_kmeans_on_rows(image, start, limit):
     for i in range(2):
         v = d[i] < d[1 - i]
         counts, bins = np.histogram(d[i][v], bins=1000)
-        plt.hist(bins[:-1], bins, weights=counts); plt.show()
+        #plt.hist(bins[:-1], bins, weights=counts); plt.show()
         ind1 = np.unravel_index(np.argsort(d[i]), (nr, nc))
         ind[0].extend(ind1[0][-50:])
         ind[1].extend(ind1[1][-50:])
 
-    plt.plot(range(d.shape[1]), d[0] - d[1], 'o'); plt.show()
+    #plt.plot(range(d.shape[1]), d[0] - d[1], 'o'); plt.show()
     return np.argmin(d, axis=0).reshape(nr, nc), ind
 
 
@@ -173,16 +196,20 @@ def read_with_kmeans(image):
     # TODO: check how good this is, maybe try with normalization
     # gray = scipy.ndimage.gaussian_filter(scipy.ndimage.laplace(np.mean(img, axis=-1)), 2)
     parts = []
-    outliers = ([], [])
-    for i in range(2):
-        start = NROWS * i // 2
-        limit = NROWS * (i + 1) // 2
-        v, outl = read_with_kmeans_on_rows(image, start, limit)
-        parts.append(v)
-        outliers[0].extend(np.array(outl[0]) + start)
-        outliers[1].extend(outl[1])
-
-    return np.concatenate(parts, axis=0), outliers
+    n = NROWS // 16
+    m = NCOLS // 16
+    for i in range(n):
+        p1 = []
+        for j in range(m):
+            start_row = NROWS * i // n
+            limit_row = NROWS * (i + 1) // n
+            start_col = NCOLS * j // m
+            limit_col = NCOLS * (j + 1) // m
+            v, outl = read_with_kmeans_on_tile(image, start_row, start_col,
+                                               limit_row, limit_col)
+            p1.append(v)
+        parts.append(np.concatenate(p1, axis=1))
+    return np.concatenate(parts, axis=0)
 
 def dump_str(read_bits):
     rows = []
