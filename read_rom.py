@@ -9,6 +9,75 @@ from dataclasses import dataclass
 NROWS = 16 * 5
 NCOLS = 16 * 22
 
+FIXES = {
+    (0, 12): 0,
+    (1, 15): 0,
+    (1, 147): 0,
+    (2, 222): 0,
+    (3, 13): 0,
+    (5, 12): 0,
+    (5, 13): 0,
+    (5, 293): 1,
+    (6, 233): 0,
+    (7, 15): 0,
+    (9, 224): 1,
+    (11, 160): 0,
+    (13, 20): 1,
+    (14, 97): 1,
+    (14, 224): 1,
+    (15, 195): 0,
+    (15, 275): 0,
+    (15, 286): 0,
+    (16, 224): 0,
+    (16, 225): 0,
+    (16, 226): 0,
+    (16, 227): 0,
+    (16, 229): 0,
+    (16, 244): 0,
+    (16, 248): 0,
+    (17, 225): 0,
+    (17, 226): 0,
+    (17, 227): 0,
+    (17, 228): 0,
+    (17, 229): 0,
+    (17, 232): 0,
+    (17, 233): 0,
+    (17, 234): 0,
+    (17, 235): 0,
+    (17, 237): 0,
+    (17, 239): 0,
+    (17, 240): 0,
+    (18, 225): 0,
+    (18, 226): 0,
+    (18, 228): 0,
+    (20, 225): 0,
+    (20, 228): 0,
+    (21, 226): 0,
+    (21, 227): 0,
+    (23, 109): 0,
+    (25, 63): 0,
+    (26, 62): 0,
+    (26, 63): 0,
+    (27, 63): 0,
+    (28, 59): 0,
+    (28, 60): 0,
+    (28, 61): 0,
+    (28, 63): 0,
+    (30, 59): 0,
+    (30, 61): 0,
+    (30, 62): 0,
+    (30, 63): 0,
+    (30, 113): 0,
+    (35, 224): 0,
+    (37, 248): 0,
+    (39, 60): 1,
+    (48, 331): 0,
+    (58, 159): 1,
+    (60, 325): 0,
+    (61, 168): 0,
+    (70, 316): 0,
+}
+
 @dataclass
 class ImageDesc:
     path: str
@@ -236,3 +305,34 @@ def show_outliers(image, bits, outliers, v):
             points.append(bit_pos(image.desc, i, j))
     plt.plot([p[0] for p in points], [p[1] for p in points], 'o', alpha=0.3)
     plt.show()
+
+def combine_fx_images():
+    img1 = load_image(FX2500_ROM)
+    bits1 = read_with_kmeans(img1)
+    img2 = load_image(FX2500_ROM_2)
+    bits2 = read_with_kmeans(img2)
+    return np.concatenate((bits2[0:16], bits1[16:]), axis=0)
+
+def apply_fixes(bits):
+    res = bits.copy()
+    n = 0
+    for p, v in FIXES.items():
+        if res[p] != v: n += 1
+        res[p] = v
+    print(f"Fixed {n} bits")
+    return res
+
+def print_fix_template(mask):
+    for p in np.argwhere(mask):
+        print(f"({p[0]}, {p[1]}): ,")
+
+def show_selected_bit_versions(mask, *images):
+    for p in np.argwhere(mask):
+        print(p)
+        fig, axes = plt.subplots(nrows=1, ncols=len(images))
+        for ax, img in zip(axes, images):
+            bp = bit_pos(img.desc, p[0], p[1])
+            ibp = (int(bp[0]), int(bp[1]))
+            ax.imshow(img.img[ibp[1] - 10:ibp[1] + 10,
+                              ibp[0] - 10:ibp[0] + 10])
+        plt.show()
