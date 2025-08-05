@@ -146,6 +146,13 @@ class Emulator:
     def del_all_breaks(self):
         self.breaks = set()
 
+    def until(self, adr):
+        # TODO: make until an option in cont, do not delete a breakpoint
+        # if it already was one.
+        self.breaks.add(adr)
+        self.cont()
+        self.del_break(adr)
+
     def print_state(self):
         for i in range(2):
             for j in range(4):
