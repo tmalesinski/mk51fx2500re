@@ -3,15 +3,9 @@
 import unittest
 
 import emulator
+from keys import *
 from program import Program
 
-# TODO: move it to emulator?
-K1 = (0, 4)
-K2 = (1, 4)
-K3 = (2, 4)
-K4 = (0, 2)
-KPLUS = (5, 8)
-KEQ = (5, 4)
 
 class TestEmulator(unittest.TestCase):
     def setUp(self):
@@ -19,7 +13,7 @@ class TestEmulator(unittest.TestCase):
 
     def _execute_seq(self, keys):
         for k in keys:
-            self.emulator.keycode = (0, 0)
+            self.emulator.keycode = 0
             self.emulator.add_break(0x3c5)
             self.emulator.cont()
             self.emulator.del_all_breaks()

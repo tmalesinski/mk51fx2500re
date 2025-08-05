@@ -1,35 +1,7 @@
 from emulator import Emulator
+from keys import *
 from program import Program
 
-
-K1 = (0, 4)
-K2 = (1, 4)
-K3 = (2, 4)
-K4 = (0, 2)
-K5 = (1, 2)
-K6 = (2, 2)
-K7 = (3, 2)
-K8 = (4, 2)
-K9 = (5, 2)
-K0 = (3, 4)
-KC = (0, 8)
-KPLUS = (5, 8)
-KEQ = (5, 4)
-KMINUS = (4, 8)
-KSQRT = (1, 1)
-KMUL = (3, 8)
-KSIN = (3, 12)
-KLOG = (0, 12)
-KLN = (1, 12)
-KPOW = (2, 12)
-KPI = (6, 4)
-KF = (5, 1)
-KMODE = (7, 1)
-KMIN = (6, 8)
-KMR = (7, 8)
-KP = (4, 4)
-KINV = (6, 2)
-KDMS = (6, 12)
 
 def create_emulator():
     return Emulator(Program.from_file())
@@ -84,7 +56,7 @@ def get_key_trace(row, col_code):
     e.add_break(0x3c5)
     e.cont(50)
     e.del_all_breaks()
-    e.keycode = (row, col_code)
+    e.keycode = ro1 * 10 + col_code
     trace = []
     for i in range(100):
         e.step()
@@ -94,8 +66,7 @@ def get_key_trace(row, col_code):
 def get_key_traces():
     traces = []
     for row in range(8):
-        for col_code in range(1, 15):
-            if col_code >= 4 and col_code & 3 != 0: continue
+        for col_code in range(1, 6):
             trace = get_key_trace(row, col_code)
             traces.append((row, col_code, trace))
     traces.sort(key=lambda t: t[2])
@@ -138,7 +109,7 @@ def get_disp_after_keys():
 def execute_seq(keys, trace=False):
     e = create_emulator()
     for k in keys:
-        e.keycode = (0, 0)
+        e.keycode = 0
         e.add_break(0x3c5)
         e.cont()
         e.del_all_breaks()

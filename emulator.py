@@ -27,7 +27,7 @@ class Emulator:
         self.stack = [0] * _STACK_SIZE
         self.sp = 0
 
-        self.keycode = (0, 0)
+        self.keycode = 0
 
         self.breaks = set()
         self.until_return = None
@@ -38,7 +38,8 @@ class Emulator:
             return self.regs[inp.n][fs]
         if isinstance(inp, KeyCodeInput):
             r = [0] * 15
-            r[13 - self.keycode[0]] = self.keycode[1]
+            r[13 - self.keycode // 10] = (
+                [0, 1, 2, 4, 8, 12][self.keycode % 10])
             return r[fs]
         if isinstance(inp, ConstantInput):
             r = [0] * (field[1] - field[0] + 1)
