@@ -4,6 +4,7 @@ import re
 def get_display(e):
     num = ""
     ind = ""
+    ind_txt = ["?0", "F", "?2", "M", "K", "DEG", "RAD", "GRA", "SD"]
     for i in range(9):
         d = e.regs[0][12 - i]
         if d <= 9:
@@ -17,7 +18,7 @@ def get_display(e):
         p = e.regs[1][12 - i]
         if p & 8:
             num += "."
-        ind += str(i) if p & 4 else "_"
+        ind += ind_txt[i] if p & 4 else " " * len(ind_txt[i])
     return num, ind
 
 
