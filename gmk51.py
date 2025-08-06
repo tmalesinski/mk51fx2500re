@@ -39,10 +39,10 @@ class Window(Gtk.Window):
         fn_buttons = [
             [None, ("C", KC), ("CE", KCE), ("pi", KPI), ("MODE", KMODE),
              ("F", KF)],
-            [("log", KLOG), ("ln", KLN), ("DMS", KDMS), ("sin", KSIN),
-             ("cos", KCOS), ("tan", KTAN)],
-            [("sqrt", KSQRT), ("pow", KPOW), ("1/x", KINV), ("<->", KSWAP),
-             ("[(", KLBR), (")]", KRBR)]]
+            [("log/10^x", KLOG), ("ln/e^x", KLN), ("DMS", KDMS),
+             ("sin/-1", KSIN), ("cos/-1", KCOS), ("tan/-1", KTAN)],
+            [("sqrt/x^2", KSQRT), ("pow/root", KPOW), ("1/x/n!", KINV),
+             ("<->", KSWAP), ("[(", KLBR), (")]", KRBR)]]
         for i, row in enumerate(fn_buttons):
             for j, p in enumerate(row):
                 if p is None: continue
