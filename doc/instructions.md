@@ -217,6 +217,8 @@ The same as `INSL #0,Rd` (TODO: is it true when looking at the code?)
 
 TODO: is it useful to have it as another instruction?
 
+TODO: would it be useful to have SHR as well?
+
 ## SUB #i.L,Rd
 
 op = 01110
