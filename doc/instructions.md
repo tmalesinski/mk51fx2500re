@@ -25,11 +25,9 @@ shorthands separately.
 
 ## JUMP adr
 
-op = 00000
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00000 | none     | yes      |          |
 
 Continues program execution at the next address. Ignores the field, so
 it executes in one digit cycle without waiting for a specific
@@ -38,11 +36,9 @@ instruction that does not allow that.
 
 ## CALL adr
 
-op = 00001
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00001 | none     | yes      |          |
 
 Format: `ttt 00001 uuuu rrrr ccc CCC`
 
@@ -52,11 +48,10 @@ executes in one digit cycle without waiting for a specific field.
 
 ## INSH #i,Rd
 
-op = 00010
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00010 | none     | no       |          |
 
-branches: none
-
-row addr: no
 
 Shifts the field in Rd one digit to the right (towards less
 significant digits) and puts `i` as the most significant digit in the
@@ -64,11 +59,9 @@ field.
 
 ## RETURN adr
 
-op = 00011
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00011 | none     | yes      |          |
 
 Pops a return address from the stack and continues at an address equal
 to the bitwise or of the adress from the stack and the next address
@@ -76,31 +69,25 @@ from the instruction (TODO: are all bits actually or'd?)
 
 ## MOV Rd,R1
 
-op = 00100
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00100 | none     | yes      |          |
 
 Copies the field from Rd to the field in R1.
 
 ## MOV Rd,R0
 
-op = 00101
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00101 | none     | yes      |          |
 
 Copies the field from Rd to the field in R0.
 
 ## AND #i,Rd
 
-op = 00110
-
-branches: none
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00110 | none     | no       |          |
 
 Sets each digit in the field of Rd to bitwise and of the digit and
 `i`.
@@ -109,11 +96,9 @@ TODO: KR0 when i == 0 and it is MOV KR0,Rd then (no and'ing)
 
 ## TST #i,Rd
 
-op = 00111
-
-branches: NZ
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00111 | NZ       | no       |          |
 
 Computes bitwise and of each digit in the field of Rd and
 `i`. Does not change Rd. Branches when any result is non-zero.
@@ -122,11 +107,9 @@ TODO: KR0 when i == 0 and it is just TST KR0 then (no and'ing anymore)
 
 ## ADD #i,Rd
 
-op = 01000
-
-branches: none
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01000 | none     | no       |          |
 
 Adds the number `i` to the number in the field in Rd.
 
@@ -134,23 +117,21 @@ TODO: key when i == 0
 
 ## MOV #i,Rd
 
-op = 01001
-
-branches: none
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01001 | none     | no       |          |
 
 Sets the number in the field in Rd to the number `i`.
 
-TODO: CLR as shorthand?
+## CLR Rd
+
+Shorthand for MOV 0,Rd.
 
 ## ADD #3.L,Rd
 
-op = 01010
-
-branches: C
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01010 | C        | no       |          |
 
 Adds the number `i` to the number in the field in Rd. Branches when
 the result overflows in the field.
@@ -159,11 +140,9 @@ TODO: key when i == 0
 
 ## CMPN #i,Rd
 
-op = 01011
-
-branches: C
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01011 | C        | no       |          |
 
 Adds the number `i` and the number in the field in Rd. Does not change
 Rd. Branches when the addition resulted in a carry.
@@ -172,12 +151,9 @@ TODO: key when i == 0
 
 ## SUB #i,Rd
 
-TODO: make these into a table with header and one row?
-op = 01100
-
-branches: none
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01100 | none     | no       |          |
 
 Subtracts the number `i` from the number in the field in Rd. Branches when
 the operation result in a borrow.
@@ -186,24 +162,19 @@ TODO: key when i == 0
 
 ## OR #i,Rd
 
-op = 01101
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01101 | none     | no       | len(field) = 1 |
 
-branches: none
-
-row addr: no
-
-Requires that the field is one digit long.
 
 Sets the digit in the field of Rd to bitwise or of the digit and
 `i`.
 
 ## INSL #i,Rd
 
-op = 01101
-
-branches: none
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01101 | none     | no       | len(field) > 1 |
 
 Requires that the field is longer than one digit
 
@@ -213,19 +184,15 @@ field.
 
 ## SHL Rd
 
-The same as `INSL #0,Rd` (TODO: is it true when looking at the code?)
+The same as `INSL #0,Rd`
 
-TODO: is it useful to have it as another instruction?
-
-TODO: would it be useful to have SHR as well?
+TODO: add SHR to analyze.py
 
 ## SUB #i,Rd
 
-op = 01110
-
-branches: C,NZ
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01110 | C,NZ     | no       |          |
 
 Subtracts the number `i` from the number in the field in Rd. Branches when
 the operation result in a borrow or is non-zero.
@@ -234,11 +201,9 @@ TODO: key when i == 0
 
 ## CMP #i,Rd
 
-op = 01111
-
-branches: C,NZ
-
-row addr: no
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01111 | C,NZ     | no       |          |
 
 Subtracts the number `i` from the number in the field in Rd. Does not
 change Rd. Branches when the operation results in a borrow or is non-zero.
@@ -247,42 +212,34 @@ TODO: key when i == 0
 
 ## ADD Rs,Rd
 
-op = 1s000
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s000 | none     | yes      |          |
 
 Adds the number in the field of Rs to the number in the field in Rd.
 
 ## MOV Rs,Rd
 
-op = 1s001
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s001 | none     | yes      |          |
 
 Sets the field in Rd to the number in the field of Rs.
 
 ## ADD Rs,Rd
 
-op = 1s010
-
-branches: C
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s010 | C        | yes      |          |
 
 Adds the number in the field of Rs to the number in the field in
 Rd. Branches when the result overflows the field.
 
 ## CMPN Rs,Rd
 
-op = 1s011
-
-branches: C
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s011 | C        | yes      |          |
 
 Adds the number in the field of Rs and the number in the field in
 Rd. Does not change Rd. Branches when the addition results in a
@@ -292,43 +249,35 @@ TODO: is this one used in the code?
 
 ## SUB Rs,Rd
 
-op = 1s100
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s100 | none     | yes      |          |
 
 Subtracts the number in the field of Rs from the number in the field in
 Rd.
 
 ## SWAP Rs,Rd
 
-op = 1s101
-
-branches: none
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s101 | none     | yes      |          |
 
 Swaps the fields in Rs and Rd.
 
 ## SUB Rs,Rd
 
-op = 1s110
-
-branches: C,NZ
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s110 | C,NZ     | yes      |          |
 
 Subtracts the number in the field of Rs from the number in the field in
 Rd. Branches when the operation result in a borrow or is non-zero.
 
 ## CMP Rs,Rd
 
-op = 1s111
-
-branches: C,NZ
-
-row addr: yes
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 1s111 | C,NZ     | yes      |          |
 
 Subtracts the number in the field of Rs from the number in the field
 in Rd. Does not change Rd. Branches when the operation results in a
