@@ -1,6 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import numpy as np
+import sys
 
 from bits import *
 from instr import *
@@ -394,3 +395,20 @@ def call_return_cols(prog):
         if r is not None: n_valid += 1
     print(f"found returns: {n_valid}/{len(ret_cols)}")
     return ret_cols
+
+def help_and_exit():
+    print(f"Usage: {sys.argv[0]} listing|graph")
+    sys.exit(1)
+
+def main():
+    if len(sys.argv) < 2:
+        help_and_exit()
+    if sys.argv[1] == "listing":
+        program_paths(Program.from_file())
+    elif sys.argv[1] == "graph":
+        program_graph(Program.from_file())
+    else:
+        help_and_exit()
+
+if __name__ == "__main__":
+    main()
