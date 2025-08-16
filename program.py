@@ -3,9 +3,9 @@ class Program:
         self._code = code
 
     @staticmethod
-    def from_file(path="mk51dump.txt"):
+    def from_file(path="mk51fx2500rom.txt"):
         code = [0] * 1024
-        with open("mk51dump.txt") as f:
+        with open(path) as f:
             for i, line in enumerate(f.readlines()):
                 line = line.strip()
                 assert len(line) == 16 * 22, len(line)
