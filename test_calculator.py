@@ -58,5 +58,10 @@ class TestCalculator(unittest.TestCase):
         # TODO: replace with a function that compares significant digits
         self.assertAlmostEqual(float(self.num()), math.sqrt(123), places=4)
 
+    def test_forensics(self):
+        # From https://www.rskey.org/~mwsebastian/miscprj/models.htm
+        self.press([K9, KSIN, KCOS, KTAN, KF, KTAN, KF, KCOS, KF, KSIN])
+        self.assertEqual(self.num(), Decimal("8.9911614"))
+
 if __name__ == "__main__":
     unittest.main()
