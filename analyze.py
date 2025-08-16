@@ -222,24 +222,25 @@ def decode_instr(adr, cmd, skip_adr=False):
     return i
 
 
-def print_cmd_info(adr, cmd):
+def print_cmd_info(adr, cmd, decoder_details=False):
     di = decode_instr(adr, cmd)
     if not di: di = "???"
     print(f"{adr:03x}: {di:15s}")
-    print(f"                     "
-          f"alu0: {alu_input0(cmd)!s:7s} alu1: {alu_input1(cmd)!s:7s}")
-    print(f"                     ins:{bf(cmd, 18, 14):05b} "
-          f"reg/stc:{bf(cmd, 21, 19):01x} "
-          f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
-          f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
-          f"we:{int(instr_we(cmd))}")
+    if decoder_details:
+        print(f"                     "
+              f"alu0: {alu_input0(cmd)!s:7s} alu1: {alu_input1(cmd)!s:7s}")
+        print(f"                     ins:{bf(cmd, 18, 14):05b} "
+              f"reg/stc:{bf(cmd, 21, 19):01x} "
+              f"w/str:{bf(cmd, 13, 10):01x} ac1:{bf(cmd, 2, 0):01x} "
+              f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
+              f"we:{int(instr_we(cmd))}")
 
 def program_paths(prog):
     ret_cols = call_return_cols(prog)
     def refs_info(ind, r):
         if ind < 2:
             return ""
-        return "(from " + ",".join([f"{a:03x}" for a in r]) + ")"
+        return "; (from " + ",".join([f"{a:03x}" for a in r]) + ")"
 
     def next_adrs(adr, cmd, ret_cols):
         return [ea for ea, el in outgoing_edges(adr, cmd, ret_cols)]
