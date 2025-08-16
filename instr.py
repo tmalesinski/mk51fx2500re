@@ -121,7 +121,7 @@ class ConstantInput(AluInput):
         self.n = n
 
     def __str__(self):
-        return "0" if self.n == 0 else f"#{self.n:x}.L"
+        return "0" if self.n == 0 else f"{self.n:x}"
 
     def always_zero(self):
         return self.n == 0
@@ -136,7 +136,7 @@ class MaskedRegisterInput(AluInput):
         self.mask = mask
 
     def __str__(self):
-        return f"R{self.n}&#{self.mask:x}"
+        return f"R{self.n}&{self.mask:x}"
 
     def always_zero(self):
         return self.mask == 0
@@ -147,7 +147,7 @@ class OredRegisterInput(AluInput):
         self.mask = mask
 
     def __str__(self):
-        return f"#{self.mask:x}.L|R{self.n}"
+        return f"{self.mask:x}|R{self.n}"
 
 class PushDigitInput(AluInput):
     def __init__(self, n, digit):
@@ -155,7 +155,7 @@ class PushDigitInput(AluInput):
         self.digit = digit
 
     def __str__(self):
-        return f"#{self.digit:x}.H|(R{self.n} SHR)"
+        return f"{self.digit:x}.H|(R{self.n} SHR)"
 
 class LeftShiftedRegisterInput(AluInput):
     def __init__(self, n):

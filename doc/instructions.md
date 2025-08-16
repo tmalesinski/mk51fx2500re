@@ -120,7 +120,7 @@ Computes bitwise and of each digit in the field of Rd and
 
 TODO: KR0 when i == 0 and it is just TST KR0 then (no and'ing anymore)
 
-## ADD #i.L,Rd
+## ADD #i,Rd
 
 op = 01000
 
@@ -132,7 +132,7 @@ Adds the number `i` to the number in the field in Rd.
 
 TODO: key when i == 0
 
-## MOV #i.L,Rd
+## MOV #i,Rd
 
 op = 01001
 
@@ -157,7 +157,7 @@ the result overflows in the field.
 
 TODO: key when i == 0
 
-## CMPN #i.L,Rd
+## CMPN #i,Rd
 
 op = 01011
 
@@ -170,7 +170,7 @@ Rd. Branches when the addition resulted in a carry.
 
 TODO: key when i == 0
 
-## SUB #i.L,Rd
+## SUB #i,Rd
 
 TODO: make these into a table with header and one row?
 op = 01100
@@ -219,7 +219,7 @@ TODO: is it useful to have it as another instruction?
 
 TODO: would it be useful to have SHR as well?
 
-## SUB #i.L,Rd
+## SUB #i,Rd
 
 op = 01110
 
@@ -232,7 +232,7 @@ the operation result in a borrow or is non-zero.
 
 TODO: key when i == 0
 
-## CMP #i.L,Rd
+## CMP #i,Rd
 
 op = 01111
 

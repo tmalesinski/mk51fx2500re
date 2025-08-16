@@ -159,22 +159,22 @@ def decode_main_instr(adr, cmd):
                 assert a1 == "R1"
                 return f"SWAP {a1},{dest}"
             elif isinstance(a1s, OredRegisterInput) and a1s.n == selrn:
-                return f"OR #{a1s.mask:x},{dest}"
+                return f"OR {a1s.mask:x},{dest}"
             else:
                 return f"MOV {a1s},{dest}"
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if a1s.always_zero():
             if isinstance(a0s, MaskedRegisterInput) and a0s.n == selrn:
-                return f"AND #{a0s.mask:x},{dest}"
+                return f"AND {a0s.mask:x},{dest}"
             if isinstance(a0s, LeftShiftedRegisterInput) and a0s.n == selrn:
                 return f"SHL {dest}"
             if isinstance(a0s, PushDigitInput) and a0s.n == selrn:
-                return f"INSH #{a0s.digit:x},{dest}"
+                return f"INSH {a0s.digit:x},{dest}"
             return f"MOV {a0s},{dest}"
         else:
             if (not sub and isinstance(a0s, LeftShiftedRegisterInput) and
                 isinstance(a1s, ConstantInput) and a0s.n == selrn):
-                return f"INSL #{a1s.n:x},{dest}"
+                return f"INSL {a1s.n:x},{dest}"
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
                 return f"{op} {a1s},{dest}"
@@ -191,7 +191,7 @@ def decode_main_instr(adr, cmd):
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if sub:
             if a1s.always_zero() and isinstance(a0s, MaskedRegisterInput):
-                return f"TST #{a0s.mask:x},R{a0s.n}"
+                return f"TST {a0s.mask:x},R{a0s.n}"
             return f"CMP {a1s},{a0s}"
         else:
             return f"CMPN {a1s},{a0s}"
