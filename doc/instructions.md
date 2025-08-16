@@ -87,33 +87,54 @@ Copies the field from Rd to the field in R0.
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 00110 | none     | no       |          |
+| 00110 | none     | no       | i != 0   |
 
 Sets each digit in the field of Rd to bitwise and of the digit and
 `i`.
 
-TODO: KR0 when i == 0 and it is MOV KR0,Rd then (no and'ing)
+## MOV KR0,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00110 | none     | no       | i = 0    |
+
+For each key row probably sets all bits in the corresponding digit in
+the field to the lowest bit of the key code. No instructions using KR0
+are in the calculator code.
 
 ## TST #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 00111 | NZ       | no       |          |
+| 00111 | NZ       | no       | i != 0   |
 
 Computes bitwise and of each digit in the field of Rd and
 `i`. Does not change Rd. Branches when any result is non-zero.
 
-TODO: KR0 when i == 0 and it is just TST KR0 then (no and'ing anymore)
+## TST KR0
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00111 | NZ       | no       | i = 0    |
+
+Branches if for any key row in the field, the lowest bit of the key
+code is one. No instructions using KR0 are in the calculator code.
 
 ## ADD #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01000 | none     | no       |          |
+| 01000 | none     | no       | i != 0   |
 
 Adds the number `i` to the number in the field in Rd.
 
-TODO: key when i == 0
+## ADD KEY,R5
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01000 | none     | no       | i = 0    |
+
+Adds the key codes to the number in the field in Rd.
 
 ## MOV #i,Rd
 
@@ -127,45 +148,65 @@ Sets the number in the field in Rd to the number `i`.
 
 Shorthand for MOV 0,Rd.
 
-## ADD #3.L,Rd
+## ADD #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01010 | C        | no       |          |
+| 01010 | C        | no       | i != 0   |
 
 Adds the number `i` to the number in the field in Rd. Branches when
 the result overflows in the field.
 
-TODO: key when i == 0
+## ADD KEY,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01010 | C        | no       | i = 0    |
+
+Adds the key codes to the number in the field in Rd. Branches when
+the result overflows in the field.
 
 ## CMPN #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01011 | C        | no       |          |
+| 01011 | C        | no       | i != 0   |
 
 Adds the number `i` and the number in the field in Rd. Does not change
 Rd. Branches when the addition resulted in a carry.
 
-TODO: key when i == 0
+## CMPN KEY,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01011 | C        | no       | i = 0    |
+
+Adds the key codes and the number in the field in Rd. Does not change
+Rd. Branches when the addition resulted in a carry.
 
 ## SUB #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01100 | none     | no       |          |
+| 01100 | none     | no       | i != 0   |
 
 Subtracts the number `i` from the number in the field in Rd. Branches when
 the operation result in a borrow.
 
-TODO: key when i == 0
+## SUB KEY,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01100 | none     | no       | i = 0    |
+
+Subtracts the key codes from the number in the field in Rd. Branches when
+the operation result in a borrow.
 
 ## OR #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 01101 | none     | no       | len(field) = 1 |
-
 
 Sets the digit in the field of Rd to bitwise or of the digit and
 `i`.
@@ -175,8 +216,6 @@ Sets the digit in the field of Rd to bitwise or of the digit and
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 01101 | none     | no       | len(field) > 1 |
-
-Requires that the field is longer than one digit
 
 Shifts the field in Rd one digit to the left (towards more
 significant digits) and puts `i` as the least significant digit in the
@@ -192,23 +231,37 @@ TODO: add SHR to analyze.py
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01110 | C,NZ     | no       |          |
+| 01110 | C,NZ     | no       | i != 0   |
 
 Subtracts the number `i` from the number in the field in Rd. Branches when
 the operation result in a borrow or is non-zero.
 
-TODO: key when i == 0
+## SUB KEY,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01110 | C,NZ     | no       | i = 0    |
+
+Subtracts the key codes from the number in the field in Rd. Branches when
+the operation result in a borrow or is non-zero.
 
 ## CMP #i,Rd
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01111 | C,NZ     | no       |          |
+| 01111 | C,NZ     | no       | i != 0   |
 
 Subtracts the number `i` from the number in the field in Rd. Does not
 change Rd. Branches when the operation results in a borrow or is non-zero.
 
-TODO: key when i == 0
+## CMP KEY,Rd
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 01111 | C,NZ     | no       | i = 0    |
+
+Subtracts the key codes from the number in the field in Rd. Does not
+change Rd. Branches when the operation results in a borrow or is non-zero.
 
 ## ADD Rs,Rd
 
@@ -244,8 +297,6 @@ Rd. Branches when the result overflows the field.
 Adds the number in the field of Rs and the number in the field in
 Rd. Does not change Rd. Branches when the addition results in a
 carry.
-
-TODO: is this one used in the code?
 
 ## SUB Rs,Rd
 
