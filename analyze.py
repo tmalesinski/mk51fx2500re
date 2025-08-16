@@ -215,9 +215,9 @@ def decode_instr(adr, cmd, skip_adr=False):
         elif not is_return(cmd) and not is_jump(cmd):
             na = instr_next_adr(adr, cmd)
             i += f" N:{na:03x}"
-            if is_branch_c(cmd) and na & 0x10 == 0 and branch_c_possible(cmd):
+            if is_branch_c(cmd) and na & 0x1 == 0 and branch_c_possible(cmd):
                 i += ",C"
-            if is_branch_z(cmd) and na & 0x20 == 0:
+            if is_branch_z(cmd) and na & 0x2 == 0:
                 i += ",Z"
     return i
 
