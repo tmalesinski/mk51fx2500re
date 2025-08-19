@@ -69,7 +69,10 @@ instruction. Flags are not preserved between instructions.
 
 In the list below mnemonics do not indicate which branches are
 enabled, even though many instructions exist in both branch and
-no-branch versions. (TODO: put the possible branches in the mnemonics?)
+no-branch versions. (TODO: put the possible branches in the
+mnemonics?). Note that when an instruction enables a branch but the
+corresponding bit in the address of the next instruction is already
+set to one, the branch is effectively disabled.
 
 ## Fields
 

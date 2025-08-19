@@ -329,3 +329,11 @@ significant bits of digits in register 1.
 
 The display circuit is only enabled when the current row address is
 0xf.
+
+### Test Mode
+
+The signals from key columns (pins 35-39) combined with the signal
+from pin 48 (normally connected to the ground) are connected to
+multiple places in the chip. They can affect the instruction address
+calculation or disable control flow instructions. This is probably
+some kind of a test mode.
