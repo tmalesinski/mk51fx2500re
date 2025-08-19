@@ -5,16 +5,42 @@ technology. For an introduction to reverse engineering CMOS ICs, read
 [this Ken Shirriff's blog
 post](https://www.righto.com/2024/01/reverse-engineering-cmos.html).
 It's particularly useful to know that transistors that pull high are
-in a complementary circuit compared to those that pull low. While it
-is quite easy to find transistors that are connected in series,
-especially on the bottom layer, those wired in parallel are much less
-clear and they often have to be deduced from the serial transistors on
-the other side. Also note that although the chips in MK-51 and FX-2500
-look very similar, their layouts do not align perfectly. Travis
-Goodspeed posted an image of the bottom layer from FX-2500 but the top
-layer is clearer on his photo from the MK-51. If you try to align
-them, they will not match. Possibly the chip was copied by manually
-redrawing the masks.
+in a complementary circuit compared to those that pull low.
+
+Here is an image showing the top and bottom layer of a region from the
+instruction decoder:
+
+![Sample transistors](/img/transistors.jpg)
+
+Serial transistors are easy to see, especially on the bottom layer on
+the right. The horizontal metal lines in the top layer include the
+gates. Sources and drains are formed by the bottom polysilicon layer.
+
+The chip has regions ("wells") that contain NMOS or PMOS
+transistors. In this example serial transistors are NMOS. Left of them
+is a region with PMOS transistors connected in parallel. They are only
+barely visible so most of the time their presence has to be deduced
+from the other region. NMOS regions have darker polysilicon lines in
+the bottom layer (I'm actually not sure if I'm calling the material
+correctly). In this chip the size of transistors does not seem to
+depend on their type (PMOS ones are supposed to be generally larger).
+
+NMOS transistors pull low, while PMOS transistors pull high. For some
+reason the schematic of MK51 ([X
+post](https://x.com/travisgoodspeed/status/1743725641759957455)) has
+the ground and -2.5V as the other voltage so the ground is the higher
+voltage (VH).
+
+The top and bottom layers in the above image are from the chips in,
+respectively, MK-51 and FX-2500. Although they look very similar,
+their layouts do not align perfectly. Travis Goodspeed posted an image
+of the bottom layer from FX-2500 but the top layer is clearer on his
+photo from the MK-51. If you try to align them, they will not
+match. Possibly the chip was copied by manually redrawing the masks.
+
+The layout of the chip is quite spacious and not too convoluted so in
+many places it's relatively easy to follow the connections and figure
+out the logic.
 
 ## General Architecture
 
@@ -52,8 +78,7 @@ the blocks most important for understanding and emulating the
 calculator's code, so large parts of the display logic or clock
 generation are ignored.
 
-![Chip block diagram](/img/mk51_described_small.jpg)
-
+![Chip block diagram](/img/mk51_described.jpg)
 
 ### Program ROM
 
