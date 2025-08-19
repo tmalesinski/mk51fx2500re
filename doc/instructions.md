@@ -24,17 +24,17 @@ instruction is:
 (bit 0 is the least significant one). The fields of an instruction
 word are:
 
-* d - the number of a serial register to operate on (some instructions can
+* `ddd` - the number of a serial register to operate on (some instructions can
   additionally access registers R0 and R1.
-* o - 5-bit operation code, includes most of the information on the
+* `ooooo` - 5-bit operation code, includes most of the information on the
   type of an operation that the instruction performs.
-* f - 4-bit field code, defining the range of digits in a serial
+* `ffff` - 4-bit field code, defining the range of digits in a serial
   register to operate on.
-* i - the immediate (constant) operand of an instruction or the row
+* `iiii` - the immediate (constant) operand of an instruction or the row
   part of the address of the next instruction.
-* c - the less significant column bits of the address of the next
+* `ccc` - the less significant column bits of the address of the next
   instruction.
-* C - the more significant column bits of the address of the next
+* `CCC` - the more significant column bits of the address of the next
   instruction.
 
 ## Address format
@@ -151,7 +151,7 @@ it executes in one digit cycle without waiting for a specific
 field. Useful to change the row part of the address after an
 instruction that does not allow that.
 
-## CALL adr
+## CALL *adr*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
@@ -163,18 +163,18 @@ Continues program execution at the next address. Pushes a return
 address (`000 ttt uuuu`)to the stack. Ignores the field, so it
 executes in one digit cycle without waiting for a specific field.
 
-## INSH #i,Rd
+## INSH *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 00010 | none     | no       |          |
 
 
-Shifts the field in Rd one digit to the right (towards less
-significant digits) and puts `i` as the most significant digit in the
+Shifts the field in R*d* one digit to the right (towards less
+significant digits) and puts *i* as the most significant digit in the
 field.
 
-## RETURN adr
+## RETURN *adr*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
@@ -184,220 +184,220 @@ Pops a return address from the stack and continues at an address equal
 to the bitwise or of the adress from the stack and the next address
 from the instruction (TODO: are all bits actually or'd?)
 
-## MOV Rd,R1
+## MOV R*d*,R1
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 00100 | none     | yes      |          |
 
-Copies the field from Rd to the field in R1.
+Copies the field from R*d* to the field in R1.
 
-## MOV Rd,R0
+## MOV R*d*,R0
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 00101 | none     | yes      |          |
 
-Copies the field from Rd to the field in R0.
+Copies the field from R*d* to the field in R0.
 
-## AND #i,Rd
-
-| op    | branches | row addr | requires |
-| :---: | :------: | :------: | :------: |
-| 00110 | none     | no       | i != 0   |
-
-Sets each digit in the field of Rd to bitwise and of the digit and
-`i`.
-
-## MOV KR0,Rd
+## AND *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 00110 | none     | no       | i = 0    |
+| 00110 | none     | no       | *i* != 0 |
+
+Sets each digit in the field of R*d* to bitwise and of the digit and
+*i*.
+
+## MOV KR0,R*d*
+
+| op    | branches | row addr | requires |
+| :---: | :------: | :------: | :------: |
+| 00110 | none     | no       | *i* = 0  |
 
 For each key row probably sets all bits in the corresponding digit in
 the field to the lowest bit of the key code. No instructions using KR0
 are in the calculator code.
 
-## TST #i,Rd
+## TST *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 00111 | NZ       | no       | i != 0   |
+| 00111 | NZ       | no       | *i* != 0 |
 
-Computes bitwise and of each digit in the field of Rd and
-`i`. Does not change Rd. Branches when any result is non-zero.
+Computes bitwise and of each digit in the field of R*d* and
+*i*. Does not change R*d*. Branches when any result is non-zero.
 
 ## TST KR0
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 00111 | NZ       | no       | i = 0    |
+| 00111 | NZ       | no       | *i* = 0  |
 
 Branches if for any key row in the field, the lowest bit of the key
 code is one. No instructions using KR0 are in the calculator code.
 
-## ADD #i,Rd
+## ADD *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01000 | none     | no       | i != 0   |
+| 01000 | none     | no       | *i* != 0 |
 
-Adds the number `i` to the number in the field in Rd.
+Adds the number *i* to the number in the field in R*d*.
 
-## ADD KEY,R5
+## ADD KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01000 | none     | no       | i = 0    |
+| 01000 | none     | no       | *i* = 0  |
 
-Adds the field of the key code to the number in the field in Rd.
+Adds the field of the key code to the number in the field in R*d*.
 
-## MOV #i,Rd
+## MOV *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 01001 | none     | no       |          |
 
-Sets the number in the field in Rd to the number `i`.
+Sets the number in the field in R*d* to the number *i*.
 
-## CLR Rd
+## CLR R*d*
 
-Shorthand for MOV 0,Rd.
+Shorthand for MOV 0,R*d*.
 
-## ADD #i,Rd
+## ADD *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01010 | C        | no       | i != 0   |
+| 01010 | C        | no       | *i* != 0 |
 
-Adds the number `i` to the number in the field in Rd. Branches when
+Adds the number *i* to the number in the field in R*d*. Branches when
 the result overflows in the field.
 
-## ADD KEY,Rd
+## ADD KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01010 | C        | no       | i = 0    |
+| 01010 | C        | no       | *i* = 0  |
 
 Adds the field of the key code to the number in the field in
 Rd. Branches when the result overflows in the field.
 
-## CMPN #i,Rd
+## CMPN *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01011 | C        | no       | i != 0   |
+| 01011 | C        | no       | *i* != 0 |
 
-Adds the number `i` and the number in the field in Rd. Does not change
+Adds the number *i* and the number in the field in R*d*. Does not change
 Rd. Branches when the addition resulted in a carry.
 
-## CMPN KEY,Rd
+## CMPN KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01011 | C        | no       | i = 0    |
+| 01011 | C        | no       | *i* = 0  |
 
-Adds the field of the key code and the number in the field in Rd. Does
-not change Rd. Branches when the addition resulted in a carry.
+Adds the field of the key code and the number in the field in R*d*. Does
+not change R*d*. Branches when the addition resulted in a carry.
 
-## SUB #i,Rd
+## SUB *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01100 | none     | no       | i != 0   |
+| 01100 | none     | no       | *i* != 0 |
 
-Subtracts the number `i` from the number in the field in Rd. Branches when
+Subtracts the number *i* from the number in the field in R*d*. Branches when
 the operation result in a borrow.
 
-## SUB KEY,Rd
+## SUB KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01100 | none     | no       | i = 0    |
+| 01100 | none     | no       | *i* = 0  |
 
 Subtracts the field in the key code from the number in the field in
 Rd. Branches when the operation result in a borrow.
 
-## OR #i,Rd
+## OR *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 01101 | none     | no       | len(field) = 1 |
 
-Sets the digit in the field of Rd to bitwise or of the digit and
-`i`.
+Sets the digit in the field of R*d* to bitwise or of the digit and
+*i*.
 
-## INSL #i,Rd
+## INSL *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 01101 | none     | no       | len(field) > 1 |
 
-Shifts the field in Rd one digit to the left (towards more
-significant digits) and puts `i` as the least significant digit in the
+Shifts the field in R*d* one digit to the left (towards more
+significant digits) and puts *i* as the least significant digit in the
 field.
 
-## SHL Rd
+## SHL R*d*
 
 The same as `INSL #0,Rd`
 
 TODO: add SHR to analyze.py
 
-## SUB #i,Rd
+## SUB *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01110 | C,NZ     | no       | i != 0   |
+| 01110 | C,NZ     | no       | *i* != 0 |
 
-Subtracts the number `i` from the number in the field in Rd. Branches when
+Subtracts the number *i* from the number in the field in R*d*. Branches when
 the operation result in a borrow or is non-zero.
 
-## SUB KEY,Rd
+## SUB KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01110 | C,NZ     | no       | i = 0    |
+| 01110 | C,NZ     | no       | *i* = 0  |
 
 Subtracts the field of the key code from the number in the field in
 Rd. Branches when the operation result in a borrow or is non-zero.
 
-## CMP #i,Rd
+## CMP *i*,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01111 | C,NZ     | no       | i != 0   |
+| 01111 | C,NZ     | no       | *i* != 0 |
 
-Subtracts the number `i` from the number in the field in Rd. Does not
-change Rd. Branches when the operation results in a borrow or is non-zero.
+Subtracts the number *i* from the number in the field in R*d*. Does not
+change R*d*. Branches when the operation results in a borrow or is non-zero.
 
-## CMP KEY,Rd
+## CMP KEY,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
-| 01111 | C,NZ     | no       | i = 0    |
+| 01111 | C,NZ     | no       | *i* = 0  |
 
 Subtracts the field of the key code from the number in the field in
-Rd. Does not change Rd. Branches when the operation results in a
+Rd. Does not change R*d*. Branches when the operation results in a
 borrow or is non-zero.
 
-## ADD Rs,Rd
+## ADD Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 1s000 | none     | yes      |          |
 
-Adds the number in the field of Rs to the number in the field in Rd.
+Adds the number in the field of Rs to the number in the field in R*d*.
 
-## MOV Rs,Rd
+## MOV Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 1s001 | none     | yes      |          |
 
-Sets the field in Rd to the number in the field of Rs.
+Sets the field in R*d* to the number in the field of Rs.
 
-## ADD Rs,Rd
+## ADD Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
@@ -406,17 +406,17 @@ Sets the field in Rd to the number in the field of Rs.
 Adds the number in the field of Rs to the number in the field in
 Rd. Branches when the result overflows the field.
 
-## CMPN Rs,Rd
+## CMPN Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 1s011 | C        | yes      |          |
 
 Adds the number in the field of Rs and the number in the field in
-Rd. Does not change Rd. Branches when the addition results in a
+Rd. Does not change R*d*. Branches when the addition results in a
 carry.
 
-## SUB Rs,Rd
+## SUB Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
@@ -425,15 +425,15 @@ carry.
 Subtracts the number in the field of Rs from the number in the field in
 Rd.
 
-## SWAP Rs,Rd
+## SWAP Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 1s101 | none     | yes      |          |
 
-Swaps the fields in Rs and Rd.
+Swaps the fields in Rs and R*d*.
 
-## SUB Rs,Rd
+## SUB Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
@@ -442,12 +442,12 @@ Swaps the fields in Rs and Rd.
 Subtracts the number in the field of Rs from the number in the field in
 Rd. Branches when the operation result in a borrow or is non-zero.
 
-## CMP Rs,Rd
+## CMP Rs,R*d*
 
 | op    | branches | row addr | requires |
 | :---: | :------: | :------: | :------: |
 | 1s111 | C,NZ     | yes      |          |
 
 Subtracts the number in the field of Rs from the number in the field
-in Rd. Does not change Rd. Branches when the operation results in a
+in R*d*. Does not change R*d*. Branches when the operation results in a
 borrow or is non-zero.
