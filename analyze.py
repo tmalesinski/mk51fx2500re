@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import logging
 import numpy as np
 import sys
 
@@ -317,6 +318,8 @@ def instruction_table(imm=3):
         print(decode_instr(0, cmd))
 
 def call_return_cols(prog):
+    logger = logging.getLogger("call_return_cols")
+
     searching = set()
     ret_cols = {}
 
@@ -336,13 +339,14 @@ def call_return_cols(prog):
             if is_call(cmd):
                 ca = instr_next_adr(a, cmd)
                 if ca not in ret_cols:
-                    print("  " * level + f"  recursive search for {ca:03x}")
+                    logger.info("  " * level +
+                                f"  recursive search for {ca:03x}")
                     find_returns(ca, level + 1)
                 rcol = ret_cols.get(ca, None)
                 if rcol is not None:
                     outg = outgoing_edges(a, cmd, ret_cols)
                 else:
-                    print(f"  {ca:03x} ???")
+                    logger.info(f"  {ca:03x} ???")
                     # TODO: there are many cases where we get here because
                     # of recursion cycles. Do these cycles actually happen?
                     # Does the code purposefully leave a return value
@@ -354,7 +358,7 @@ def call_return_cols(prog):
             for ea, el in outg:
                 stack.append(ea)
         if not returns:
-            print("no returns found")
+            logger.info("no returns found")
             return None
         sl = sorted(list(returns))
         return [(a, f"R{i}") for i, a in enumerate(sl)]
@@ -363,14 +367,14 @@ def call_return_cols(prog):
         if a in ret_cols:
             return ret_cols[a]
         if a in searching:
-            print("  " * level + f"recursion cycle with {a:03x}")
+            logger.info("  " * level + f"recursion cycle with {a:03x}")
             return None
         searching.add(a)
         try:
             r = do_find_returns(a, level)
             if r is not None:
                 rastr = ','.join([f'{ra:03x}' for ra, l in r])
-                print("  " * level + f"call {a:03x} -> {rastr}")
+                logger.info("  " * level + f"call {a:03x} -> {rastr}")
             ret_cols[a] = r
         finally:
             searching.remove(a)
@@ -387,14 +391,14 @@ def call_return_cols(prog):
                 if r:
                     ret_cols[ca] = r
                     rastr = ','.join([f'{ra:03x}' for ra, l in r])
-                    print(f"{ca:03x} -> {rastr}")
+                    logger.info(f"{ca:03x} -> {rastr}")
                 else:
-                    print(f"{ca:03x} not found")
+                    logger.info(f"{ca:03x} not found")
 
     n_valid = 0
     for a, r in ret_cols.items():
         if r is not None: n_valid += 1
-    print(f"found returns: {n_valid}/{len(ret_cols)}")
+    logger.info(f"found returns: {n_valid}/{len(ret_cols)}")
     return ret_cols
 
 def help_and_exit():
@@ -402,6 +406,8 @@ def help_and_exit():
     sys.exit(1)
 
 def main():
+    logging.basicConfig(level=logging.WARNING)
+
     if len(sys.argv) < 2:
         help_and_exit()
     if sys.argv[1] == "listing":
