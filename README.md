@@ -6,9 +6,9 @@ Goodspeed](https://x.com/travisgoodspeed/status/1682510482647687168).
 
 ## Emulator
 
-This repository contains a working emulator. To run it, you need to
-get the ROM contents from [a neighboring
-repository](https://github.com/tmalesinski/mk51fx2500rom):
+This repository contains a working emulator. It requires GTK3 and its
+Python bindings. You also need to get the ROM contents from [a
+neighboring repository](https://github.com/tmalesinski/mk51fx2500rom):
 
 ```
 ln -s ../mk51fx2500rom/mk51fx2500rom.txt .
@@ -36,12 +36,14 @@ the address of the next one and branch addresses are very constrained
 (see the documentation) so ordering by address does not lead to a
 logical order.
 
-You can also create a flow graph of instructions:
+You can also create a flow graph of instructions with Graphviz:
 
 ```
 ./analyze.py graph >code.dot
 dot -Tsvg code.dot >code.svg
 ```
+
+You should be able to view the resulting SVG file with a web browser.
 
 Some edges going from CALL instructions may be missing. A procedure
 may return to one of many possible addresses depending on which RETURN
