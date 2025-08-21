@@ -149,7 +149,8 @@ ones by `RETURN` (TODO: can all bits be overridden or only the column
 ones?). This way a subroutine can return to a few different
 addresses. This saves a few instructions compared to setting a flag or
 a register in the subroutine and then branching based on it in the
-caller.
+caller. However, it seems that only one procedure has multiple
+return points.
 
 The part of the instruction that stores the row address of the next
 instruction is also used to store constant (immediate) operands. So

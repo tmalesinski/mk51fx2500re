@@ -323,14 +323,27 @@ def call_return_cols(prog):
     searching = set()
     ret_cols = {}
 
+    def print_path(prev, a):
+        while True:
+            p = prev.get(a, None)
+            if p is None: break
+            logger.info(f"{a:03x} <- {p:03x}")
+            a = p
+
     def do_find_returns(a, level):
-        stack = [a]
+        prev = {}
+        stack = [(None, a)]
         visited = set()
         returns = set()
         while stack:
-            a = stack.pop()
+            p, a = stack.pop()
+            # non-local exit on error
+            if a == 0x381:
+                logger.info("  " * level + f"  {a:03x}: skip")
+                continue
             if a in visited: continue
             visited.add(a)
+            prev[a] = p
             cmd = prog.get(a)
             if is_return(cmd):
                 returns.add(
@@ -341,22 +354,18 @@ def call_return_cols(prog):
                 if ca not in ret_cols:
                     logger.info("  " * level +
                                 f"  recursive search for {ca:03x}")
+                    print_path(prev, a)
                     find_returns(ca, level + 1)
                 rcol = ret_cols.get(ca, None)
                 if rcol is not None:
                     outg = outgoing_edges(a, cmd, ret_cols)
                 else:
                     logger.info(f"  {ca:03x} ???")
-                    # TODO: there are many cases where we get here because
-                    # of recursion cycles. Do these cycles actually happen?
-                    # Does the code purposefully leave a return value
-                    # on stack to do a non-local exit?
-                    # return None
-                    continue
+                    return None
             else:
                 outg = outgoing_edges(a, cmd, ret_cols)
             for ea, el in outg:
-                stack.append(ea)
+                stack.append((a,ea))
         if not returns:
             logger.info("no returns found")
             return None

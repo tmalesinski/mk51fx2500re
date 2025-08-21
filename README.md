@@ -44,8 +44,3 @@ dot -Tsvg code.dot >code.svg
 ```
 
 You should be able to view the resulting SVG file with a web browser.
-
-Some edges going from CALL instructions may be missing. A procedure
-may return to one of many possible addresses depending on which RETURN
-instruction is executed. Possible return addresses from procedures are
-not yet detected correctly.
