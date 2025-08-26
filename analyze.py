@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
-import logging
+import logging, re, sys
 import numpy as np
-import sys
 
 from bits import *
 from instr import *
@@ -236,6 +235,67 @@ def print_cmd_info(adr, cmd, decoder_details=False):
               f"ac0:{bf(cmd, 5, 3):01x} ar/imm:{bf(cmd, 9, 6)} "
               f"we:{int(instr_we(cmd))}")
 
+class AnnotationsParseError(Exception):
+    pass
+
+class Annotations:
+    def __init__(self):
+        self._comments = {}
+        self._labels = {}
+
+    @staticmethod
+    def load(path):
+        def parse_comment(args, ann):
+            m = re.match(r'([0-9a-fA-F]+)\s+(\S.*)', args)
+            if not m:
+                raise AnnotationsParseError("can't parse a comment: " + args)
+            try:
+                adr = int(m.group(1), 16)
+            except ValueError:
+                raise AnnotationsParseError(
+                    "can't parse a comment address " + m.group(1))
+            ann.add_comment(adr, m.group(2))
+
+        def parse_label(args, ann):
+            m = re.match(r'([0-9a-fA-F]+)\s+(\w+)', args)
+            if not m:
+                raise AnnotationsParseError("can't parse a label: " + args)
+            try:
+                adr = int(m.group(1), 16)
+            except ValueError:
+                raise AnnotationsParseError(
+                    "can't parse a label address " + m.group(1))
+            ann.add_label(adr, m.group(2))
+
+        ann = Annotations()
+        with open(path) as f:
+            for line in f.readlines():
+                s = line.strip()
+                if not s: continue
+                m = re.match(r'^(\w+)\s+(.*)', s)
+                if not m:
+                    raise AnnotationsParseError("can't parse: " + s)
+                sym = m.group(1)
+                if sym == "c":
+                    parse_comment(m.group(2), ann)
+                elif sym == "l":
+                    parse_label(m.group(2), ann)
+                else:
+                    raise AnnotationsParseError("unrecognized symbol: " + sym)
+        return ann
+
+    def add_comment(self, a, c):
+        self._comments[a] = c
+
+    def add_label(self, a, l):
+        self._label[a] = l
+
+    def comment(self, a):
+        return self._comments.get(a)
+
+    def label(self, a):
+        return self._labels.get(a)
+
 def program_paths(prog):
     ret_cols = call_return_cols(prog)
     def refs_info(ind, r):
@@ -282,13 +342,18 @@ def program_paths(prog):
             i = branches.pop()
         print("=================")
 
-def program_graph(prog):
+def program_graph(prog, ann=Annotations()):
     ret_cols = call_return_cols(prog)
     print("digraph {")
     for a in range(1024):
         cmd = prog.get(a)
-        print(f'i{a:03x} [label="{a:03x} '
-              f'{decode_instr(a, cmd, skip_adr=True)}"];')
+        lines = []
+        comment = ann.comment(a)
+        if comment is not None:
+            lines.append("; " + comment)
+        lines.append(f"{a:03x} {decode_instr(a, cmd, skip_adr=True)}")
+        label = "\\n".join(lines)
+        print(f'i{a:03x} [label="{label}"];')
 
         for e in outgoing_edges(a, cmd, ret_cols):
             print(f'i{a:03x} -> i{e[0]:03x} [label="{e[1]}"]')
@@ -422,7 +487,8 @@ def main():
     if sys.argv[1] == "listing":
         program_paths(Program.from_file())
     elif sys.argv[1] == "graph":
-        program_graph(Program.from_file())
+        # TODO: command line arg for ann
+        program_graph(Program.from_file(), Annotations.load("ann.txt"))
     else:
         help_and_exit()
 
