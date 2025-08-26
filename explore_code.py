@@ -68,10 +68,15 @@ def find_entry(key_trace, program):
             entry = a
         instr = decode_instr(a, program.get(a))
         key_acc = False
-        for p in ["R2 [14]", "R2 [13]", "R3 [14]"]:
-            if p in instr:
-                key_acc = True
-                break
+        mod = False
+        for m in ["ADD", "AND"]:
+            if instr.startswith(m):
+                mod = True
+        if not mod:
+            for p in ["R2 [14]", "R2 [13]", "R3 [14]"]:
+                if p in instr:
+                    key_acc = True
+                    break
     return entry
 
 def get_key_entries():
