@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import logging, re, sys
+import argparse, logging, re, sys
 import numpy as np
 
 from bits import *
@@ -491,15 +491,24 @@ def help_and_exit():
 def main():
     logging.basicConfig(level=logging.WARNING)
 
-    if len(sys.argv) < 2:
-        help_and_exit()
-    if sys.argv[1] == "listing":
-        program_paths(Program.from_file())
-    elif sys.argv[1] == "graph":
-        # TODO: command line arg for ann
-        program_graph(Program.from_file(), Annotations.load("ann.txt"))
-    else:
-        help_and_exit()
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    subparsers = parser.add_subparsers(dest="cmd", required=True)
+    listing_parser = subparsers.add_parser("listing", help="print a listing")
+    graph_parser = subparsers.add_parser("graph", help="print a .dot graph")
+    graph_parser.add_argument("-a", dest="annotations", default=None)
+
+    args = parser.parse_args()
+    print(args)
+
+    if args.cmd == "listing":
+         program_paths(Program.from_file())
+    elif args.cmd == "graph":
+        if args.annotations is not None:
+            ann = Annotations.load(args.annotations)
+        else:
+            ann = Annotations()
+        program_graph(Program.from_file(), ann)
+
 
 if __name__ == "__main__":
     main()
