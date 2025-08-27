@@ -498,8 +498,6 @@ def main():
     graph_parser.add_argument("-a", dest="annotations", default=None)
 
     args = parser.parse_args()
-    print(args)
-
     if args.cmd == "listing":
          program_paths(Program.from_file())
     elif args.cmd == "graph":
