@@ -2,6 +2,7 @@ from emulator import Emulator
 from keys import *
 from program import Program
 from analyze import decode_instr
+from calculator import execute_seq
 
 def create_emulator():
     return Emulator(Program.from_file())
@@ -48,8 +49,7 @@ def test_tan_cordic():
         res.append(reg_str(e.regs[1]))
     return res
 
-def get_key_trace(key):
-    e = create_emulator()
+def get_key_trace(e, key):
     e.keycode = 0
     e.until(0x3c5)
     e.keycode = key
@@ -81,13 +81,17 @@ def find_entry(key_trace, program):
 
 def get_key_entries():
     traces = []
-    emul = create_emulator()
     for row in range(8):
         for col in range(1, 6):
             key = row * 10 + col
-            trace = get_key_trace(key)
-            e = find_entry(trace, emul.prog)
-            print(f"{key}: {e:03x}")
+            e = []
+            for prefix in [[], [KF], [41], [61], [KF, KMODE]]:
+                emul = create_emulator()
+                execute_seq(emul, prefix, print_disp=False)
+                trace = get_key_trace(emul, key)
+                e.append(find_entry(trace, emul.prog))
+            estr = " ".join(f"{a:03x}" for a in e)
+            print(f"{key}: {estr}")
 
 def display(e):
     num = ""
@@ -120,16 +124,3 @@ def get_disp_after_keys():
             e.add_break(0x3c3)
             e.cont()
             print(row, f"{col_code:x}", display(e))
-
-def execute_seq(keys, trace=False):
-    e = create_emulator()
-    for k in keys:
-        e.keycode = 0
-        e.add_break(0x3c5)
-        e.cont()
-        e.del_all_breaks()
-        e.keycode = k
-        e.add_break(0x3c3)
-        e.cont(trace=trace)
-        e.del_all_breaks()
-        print(display(e))
