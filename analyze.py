@@ -444,7 +444,10 @@ def call_return_cols(prog):
             logger.info("no returns found")
             return None
         sl = sorted(list(returns))
-        return [(a, f"R{i}") for i, a in enumerate(sl)]
+        if len(sl) > 2:
+            return [(a, f"R{i}") for i, a in enumerate(sl)]
+        else:
+            return [(a, "") for a in sl]
 
     def find_returns(a, level=0):
         if a in ret_cols:
