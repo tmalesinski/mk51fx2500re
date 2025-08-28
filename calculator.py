@@ -39,3 +39,9 @@ def execute_seq(e, keys, print_disp=True):
         if print_disp:
             num, ind = get_display(e)
             print(f"{num}|{ind}")
+
+def decode_num(r):
+    d = [r[i] for i in range(12, 1, -1)]
+    e = r[1] * 10 + r[0]
+    if r[13] & 2: e = -e
+    return Decimal((r[13] >> 3, d, e - 10))

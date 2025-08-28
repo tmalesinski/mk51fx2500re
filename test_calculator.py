@@ -63,5 +63,41 @@ class TestCalculator(unittest.TestCase):
         self.press([K9, KSIN, KCOS, KTAN, KF, KTAN, KF, KCOS, KF, KSIN])
         self.assertEqual(self.num(), Decimal("8.9911614"))
 
+    def test_decode_positive_number(self):
+        self.press([K1, K2, K3])
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]), 123)
+
+    def test_decode_fractional_number(self):
+        self.press([K1, K2, K3, KP, K4, K5])
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]), Decimal("123.45"))
+
+    def test_decode_zero(self):
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]), 0)
+
+    def test_decode_negative_number(self):
+        self.press([K1, K2, KNEG])
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]), -12)
+
+    def test_decode_large_exponent(self):
+        self.press([K1, K2, KPI, K3, K4])
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]), Decimal("12e34"))
+
+    def test_decode_low_fractional_number(self):
+        self.press([KP, K0, K0, K0, K1, K2])
+        self.emulator.call(0x200)
+        self.emulator.print_state()
+        self.assertEqual(decode_num(self.emulator.regs[0]), Decimal("0.00012"))
+
+    def test_decode_negative_large_negative_exponent(self):
+        self.press([K1, K2, KP, K3, KNEG, KPI, K4, K5, KNEG])
+        self.emulator.call(0x200)
+        self.assertEqual(decode_num(self.emulator.regs[0]),
+                         Decimal("-12.3e-45"))
+
 if __name__ == "__main__":
     unittest.main()
