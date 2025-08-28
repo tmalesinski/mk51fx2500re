@@ -30,7 +30,7 @@ class Emulator:
         self.keycode = 0
 
         self.breaks = set()
-        self.until_return = None
+        self.call_sp = None
 
     def _get_input(self, inp, field):
         fs = slice(field[0], field[1] + 1)
@@ -113,30 +113,31 @@ class Emulator:
         else:
             self._execute_alu_instr(instr)
 
-    def cont(self, steps=None, until_return=False, trace=False):
-        if until_return:
-            self.until_return = self.sp
-
-        if steps is not None:
-            if steps == 0: return
-            steps -=1
-
-        self.step()
-        if trace: self.print_state()
+    def cont(self, steps=None, trace=False):
+        first = True
         while True:
             if steps is not None and steps == 0: return
 
-            if self.pc in self.breaks:
+            if not first and self.pc in self.breaks:
                 return
-            if self.until_return is not None:
+            first = False
+            if self.call_sp is not None:
                 if (is_return(self.prog.get(self.pc)) and
-                    self.until_return == self.sp):
-                    self.until_return = None
+                    self.call_sp == self.sp):
+                    self.call_sp = None
                     return
 
             if steps is not None: steps -= 1
             self.step()
             if trace: self.print_state()
+
+    def start_call(self, adr):
+        self.call_sp = self.sp
+        self.pc = adr
+
+    def call(self, adr):
+        self.start_call(adr)
+        self.cont()
 
     def add_break(self, adr):
         self.breaks.add(adr)

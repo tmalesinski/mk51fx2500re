@@ -7,26 +7,22 @@ from calculator import execute_seq
 def create_emulator():
     return Emulator(Program.from_file())
 
-def call(e, adr):
-    e.pc = adr
-    e.cont(until_return=True)
-
 def reg_str(r):
     return "".join(f"{d:x}" for d in reversed(r))
 
 def test_pi():
     e = create_emulator()
-    call(e, 0x0d4)
+    e.call(0x0d4)
     return reg_str(e.regs[0])
 
 def test_pi180():
     e = create_emulator()
-    call(e, 0x277)
+    e.call(0x277)
     return reg_str(e.regs[1])
 
 def test_ln10():
     e = create_emulator()
-    call(e, 0x26c)
+    e.call(0x26c)
     return reg_str(e.regs[1])
 
 def test_ln_cordic():
@@ -34,7 +30,7 @@ def test_ln_cordic():
     for i in range(15):
         e = create_emulator()
         e.regs[0][0] = i
-        call(e, 0x028)
+        e.call(0x028)
         res.append(reg_str(e.regs[1]))
     return res
 
@@ -45,7 +41,7 @@ def test_tan_cordic():
     for i in range(15):
         e = create_emulator()
         e.regs[0][0] = i
-        call(e, 0x1)
+        e.call(0x1)
         res.append(reg_str(e.regs[1]))
     return res
 
