@@ -137,11 +137,12 @@ class Annotations:
     def __init__(self):
         self._comments = {}
         self._labels = {}
+        self._external = set()
 
     @staticmethod
     def load(path):
         def parse_comment(args, ann):
-            m = re.match(r'([0-9a-fA-F]+)\s+(\S.*)', args)
+            m = re.match(r'([0-9a-fA-F]+)\s+(\S.*)$', args)
             if not m:
                 raise AnnotationsParseError("can't parse a comment: " + args)
             try:
@@ -152,7 +153,7 @@ class Annotations:
             ann.add_comment(adr, m.group(2))
 
         def parse_label(args, ann):
-            m = re.match(r'([0-9a-fA-F]+)\s+(\w+)', args)
+            m = re.match(r'([0-9a-fA-F]+)\s+(\w+)$', args)
             if not m:
                 raise AnnotationsParseError("can't parse a label: " + args)
             try:
@@ -161,6 +162,18 @@ class Annotations:
                 raise AnnotationsParseError(
                     "can't parse a label address " + m.group(1))
             ann.add_label(adr, m.group(2))
+
+        def parse_external(args, ann):
+            m = re.match(r'([0-9a-fA-F]+)$', args)
+            if not m:
+                raise AnnotationsParseError("can't parse external address: " +
+                                            args)
+            try:
+                adr = int(m.group(1), 16)
+            except ValueError:
+                raise AnnotationsParseError(
+                    "can't parse external address " + m.group(1))
+            ann.add_external(adr)
 
         ann = Annotations()
         with open(path) as f:
@@ -175,6 +188,8 @@ class Annotations:
                     parse_comment(m.group(2), ann)
                 elif sym == "l":
                     parse_label(m.group(2), ann)
+                elif sym == "x":
+                    parse_external(m.group(2), ann)
                 else:
                     raise AnnotationsParseError("unrecognized symbol: " + sym)
         return ann
@@ -185,11 +200,17 @@ class Annotations:
     def add_label(self, a, l):
         self._labels[a] = l
 
+    def add_external(self, a):
+        self._external.add(a)
+
     def comment(self, a):
         return self._comments.get(a)
 
     def label(self, a):
         return self._labels.get(a)
+
+    def external(self, a):
+        return a in self._external
 
 def decode_main_instr(adr, cmd, annotations=Annotations()):
     def fmt_adr(a):
@@ -364,8 +385,19 @@ def program_graph(prog, ann=Annotations()):
         label = "\\n".join(lines)
         print(f'i{a:03x} [label="{label}"];')
 
+        ext_nodes = set()
         for e in outgoing_edges(a, cmd, ret_cols):
-            print(f'i{a:03x} -> i{e[0]:03x} [label="{e[1]}"]')
+            eal = ann.label(e[0])
+            if eal is None:
+                eal = f"{e[0]:03x}"
+            if ann.external(e[0]):
+                dest = f'i{a:03x}_{e[0]:03x}'
+                if e[0] not in ext_nodes:
+                    print(f'{dest} [label="{eal}" shape=invtriangle]')
+                    ext_nodes.add(e[0])
+            else:
+                dest = f'i{e[0]:03x}'
+            print(f'i{a:03x} -> {dest} [label="{e[1]}"]')
     print("}")
 
 def instruction_table(imm=3):
