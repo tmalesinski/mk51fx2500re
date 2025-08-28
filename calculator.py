@@ -45,3 +45,13 @@ def decode_num(r):
     e = r[1] * 10 + r[0]
     if r[13] & 2: e = -e
     return Decimal((r[13] >> 3, d, e - 10))
+
+def set_num(emul, r, x):
+    reg = emul.regs[r]
+    _, digits, exp = Decimal(x).as_tuple()
+    exp += len(digits) - 1
+    if abs(exp) > 99: raise ValueError("exponent too large")
+    reg[13] = (int(x < 0) << 3) | (int(exp < 0) << 1)
+    reg[12:1:-1] = list(digits[:11]) + [0] * max(0, 11 - len(digits))
+    reg[0] = abs(exp) % 10
+    reg[1] = abs(exp) // 10

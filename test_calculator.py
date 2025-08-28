@@ -99,5 +99,12 @@ class TestCalculator(unittest.TestCase):
         self.assertEqual(decode_num(self.emulator.regs[0]),
                          Decimal("-12.3e-45"))
 
+    def test_set_num(self):
+        for x in [Decimal("1234.56"), Decimal("-1234.56"),
+                  Decimal("0.000001234"), 1, 0]:
+            set_num(self.emulator, 0, x)
+            self.assertEqual(decode_num(self.emulator.regs[0]), x)
+
+
 if __name__ == "__main__":
     unittest.main()
