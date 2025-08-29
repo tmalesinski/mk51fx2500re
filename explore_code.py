@@ -2,7 +2,7 @@ from emulator import Emulator
 from keys import *
 from program import Program
 from analyze import decode_instr
-from calculator import execute_seq
+from calculator import execute_seq, decode_num
 
 def create_emulator():
     return Emulator(Program.from_file())
@@ -13,17 +13,17 @@ def reg_str(r):
 def test_pi():
     e = create_emulator()
     e.call(0x0d4)
-    return reg_str(e.regs[0])
+    return decode_num(e.regs[0])
 
 def test_pi180():
     e = create_emulator()
     e.call(0x277)
-    return reg_str(e.regs[1])
+    return decode_num(e.regs[1])
 
 def test_ln10():
     e = create_emulator()
     e.call(0x26c)
-    return reg_str(e.regs[1])
+    return decode_num(e.regs[1])
 
 def test_ln_cordic():
     res = []
@@ -31,18 +31,16 @@ def test_ln_cordic():
         e = create_emulator()
         e.regs[0][0] = i
         e.call(0x028)
-        res.append(reg_str(e.regs[1]))
+        res.append(decode_num(e.regs[1]))
     return res
 
-# TODO: check correctness, in particular the dest register at 030 should
-# probably be R1 (incorrect bit in the ROM read).
 def test_tan_cordic():
     res = []
     for i in range(15):
         e = create_emulator()
         e.regs[0][0] = i
         e.call(0x1)
-        res.append(reg_str(e.regs[1]))
+        res.append(decode_num(e.regs[1]))
     return res
 
 def get_key_trace(e, key):
