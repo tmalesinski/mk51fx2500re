@@ -44,3 +44,11 @@ dot -Tsvg code.dot >code.svg
 ```
 
 You should be able to view the resulting SVG file with a web browser.
+
+You can also use annotations from the [neighboring
+repository](https://github.com/tmalesinski/mk51fx2500rom):
+
+```
+./analyze.py graph -a ../mk51fx2500rom/annotations.txt >code.dot
+dot -Tsvg code.dot >code.svg
+```
