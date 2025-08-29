@@ -105,6 +105,9 @@ class TestCalculator(unittest.TestCase):
             set_num(self.emulator, 0, x)
             self.assertEqual(decode_num(self.emulator.regs[0]), x)
 
+    def test_max_num(self):
+        self.press([K9, KP, K9, K9, K9, K9, K9, KPI, K9, K9, KEQ])
+        self.assertEqual(self.num(), Decimal("9.99999e99"))
 
 if __name__ == "__main__":
     unittest.main()

@@ -114,7 +114,8 @@ def decode_field(f):
     init_fields()
     return _FIELDS[f]
 
-# TODO: for f=0xc ([1:0]) there is probably no adjustment on 1
-# (possibly to have exponents in -159 to 159)
 def has_decimal_adjustment(f):
     return f & 0xc == 0xc
+
+def partial_decimal_adjustment(f):
+    return f == 0xc

@@ -6,6 +6,7 @@ from analyze import instr_selr_to_r0, instr_selr_to_r1, instr_we
 from analyze import decode_instr
 from program import *
 from field import decode_field, has_decimal_adjustment
+from field import partial_decimal_adjustment
 
 def instr_field(instr):
     return bf(instr, 13, 10)
@@ -70,11 +71,13 @@ class Emulator:
         assert len(v0) == len(v1)
         assert len(v0) == field[1] - field[0] + 1
 
-        # TODO: disable decimal adjustment on one digit for fcode == 0xc
         base = 10 if has_decimal_adjustment(fcode) else 16
+        partial_dec = partial_decimal_adjustment(fcode)
         c = 0
         res = []
-        for a, b in zip(v0, v1):
+        for i, (a, b) in enumerate(zip(v0, v1)):
+            if partial_dec and i == 1:
+                base = 16
             if not instr_alu_sub(instr):
                 r = a + b + c
                 c = int(r >= base)

@@ -104,7 +104,7 @@ is the most significant one. The ranges are inclusive on both ends.
 | 1110 | [12:0] | yes |
 | 1111 | [12:2] | yes |
 
-(*) the decimal mode is probably disabled on digit 1.
+(*) the decimal mode is only enabled on digit 0
 
 ## Immediate (constant) operands
 
