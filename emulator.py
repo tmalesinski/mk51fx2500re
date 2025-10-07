@@ -151,11 +151,11 @@ class Emulator:
     def del_all_breaks(self):
         self.breaks = set()
 
-    def until(self, adr):
+    def until(self, adr, trace=False):
         # TODO: make until an option in cont, do not delete a breakpoint
         # if it already was one.
         self.breaks.add(adr)
-        self.cont()
+        self.cont(trace=trace)
         self.del_break(adr)
 
     def print_state(self):
