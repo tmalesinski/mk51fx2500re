@@ -37,17 +37,25 @@ class Window(Gtk.Window):
         self.fn_grid.set_halign(Gtk.Align.CENTER)
         self.fn_grid.set_column_homogeneous(True)
         fn_buttons = [
-            [None, ("C", KC), ("CE", KCE), ("pi", KPI), ("MODE", KMODE),
-             ("F", KF)],
-            [("log/10^x", KLOG), ("ln/e^x", KLN), ("DMS", KDMS),
+            [None, ("C", KC), ("CE", KCE),
+             ('EXP <span color="red">pi</span>', KPI),
+             ("MODE", KMODE),
+             ('<span color="red">F</span>', KF)],
+            [('log <span color="red">10<sup>x</sup></span>', KLOG),
+             ("ln/e<sup>x</sup>", KLN),
+             ("DMS", KDMS),
              ("sin/-1", KSIN), ("cos/-1", KCOS), ("tan/-1", KTAN)],
-            [("sqrt/x^2", KSQRT), ("pow/root", KPOW), ("1/x/n!", KINV),
-             ("<->", KSWAP), ("[(", KLBR), (")]", KRBR)]]
+            [("sqrt/x<sup>2</sup>", KSQRT),
+             ("y<sup>x</sup>/root", KPOW),
+             ("1/x/n!", KINV),
+             ("&lt;-&gt;", KSWAP), ("[(", KLBR), (")]", KRBR)]]
         for i, row in enumerate(fn_buttons):
             for j, p in enumerate(row):
                 if p is None: continue
                 label, key = p
-                b = Gtk.Button.new_with_label(label)
+                b = Gtk.Button("")
+                child = b.get_child()
+                child.set_markup(label)
                 b.connect("clicked", self.on_clicked, key)
                 self.fn_grid.attach(b, j, i, 1, 1)
 
