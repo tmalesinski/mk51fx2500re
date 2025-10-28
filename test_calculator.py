@@ -39,18 +39,18 @@ class TestCalculator(unittest.TestCase):
         self.press([K4, K0, K5, KSIN])
 
     def test_sin_rad(self):
-        # TODO: KPI should require KF before it
-        self.press([KMODE, KPI, KDIV, K6, KEQ, KSIN])
+        # TODO: KEXP should require KF before it
+        self.press([KMODE, KEXP, KDIV, K6, KEQ, KSIN])
 
     def test_cos(self):
         self.press([K6, K0, KCOS])
         self.press([K3, K0, KCOS])
 
     def test_exp_form(self):
-        self.press([K7, K8, KF, KPI, K1, K2, KPLUS, K1, KF, KPI, K1, K1, KEQ])
+        self.press([K7, K8, KF, KEXP, K1, K2, KPLUS, K1, KF, KEXP, K1, K1, KEQ])
         self.assertEqual(self.num(), Decimal("78e12") + Decimal("1e11"))
-        self.press([K7, K8, KF, KPI, K1, K2, KNEG, KPLUS,
-               K1, KF, KPI, K1, K1, KNEG, KEQ])
+        self.press([K7, K8, KF, KEXP, K1, K2, KNEG, KPLUS,
+               K1, KF, KEXP, K1, K1, KNEG, KEQ])
         self.assertEqual(self.num(), Decimal("78e-12") + Decimal("1e-11"))
 
     def test_sqrt(self):
@@ -83,7 +83,7 @@ class TestCalculator(unittest.TestCase):
         self.assertEqual(decode_num(self.emulator.regs[0]), -12)
 
     def test_decode_large_exponent(self):
-        self.press([K1, K2, KPI, K3, K4])
+        self.press([K1, K2, KEXP, K3, K4])
         self.emulator.call(0x200)
         self.assertEqual(decode_num(self.emulator.regs[0]), Decimal("12e34"))
 
@@ -94,7 +94,7 @@ class TestCalculator(unittest.TestCase):
         self.assertEqual(decode_num(self.emulator.regs[0]), Decimal("0.00012"))
 
     def test_decode_negative_large_negative_exponent(self):
-        self.press([K1, K2, KP, K3, KNEG, KPI, K4, K5, KNEG])
+        self.press([K1, K2, KP, K3, KNEG, KEXP, K4, K5, KNEG])
         self.emulator.call(0x200)
         self.assertEqual(decode_num(self.emulator.regs[0]),
                          Decimal("-12.3e-45"))
@@ -106,7 +106,7 @@ class TestCalculator(unittest.TestCase):
             self.assertEqual(decode_num(self.emulator.regs[0]), x)
 
     def test_max_num(self):
-        self.press([K9, KP, K9, K9, K9, K9, K9, KPI, K9, K9, KEQ])
+        self.press([K9, KP, K9, K9, K9, K9, K9, KEXP, K9, K9, KEQ])
         self.assertEqual(self.num(), Decimal("9.99999e99"))
 
 if __name__ == "__main__":
