@@ -33,9 +33,21 @@ class Window(Gtk.Window):
         self.vbox.pack_start(display_frame,
                              expand=True, fill=False, padding=0)
 
-        self.fn_grid = Gtk.Grid()
-        self.fn_grid.set_halign(Gtk.Align.CENTER)
-        self.fn_grid.set_column_homogeneous(True)
+        self.vbox.pack_start(self.build_mk51_keyboard(),
+                             expand=True, fill=True, padding=0)
+
+        self.add(self.vbox)
+
+        self.emulator = Emulator(Program.from_file())
+        self.emulator.until(0x3c3)
+        self.update_display()
+
+    def build_mk51_keyboard(self):
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        fn_grid = Gtk.Grid()
+        fn_grid.set_halign(Gtk.Align.CENTER)
+        fn_grid.set_column_homogeneous(True)
         fn_buttons = [
             [None, ("C", KC), ("CE", KCE),
              ('EXP <span color="red">pi</span>', KEXP),
@@ -63,13 +75,13 @@ class Window(Gtk.Window):
                 child = b.get_child()
                 child.set_markup(label)
                 b.connect("clicked", self.on_clicked, key)
-                self.fn_grid.attach(b, j, i, 1, 1)
+                fn_grid.attach(b, j, i, 1, 1)
 
-        self.vbox.pack_start(self.fn_grid, expand=True, fill=True, padding=0)
+        vbox.pack_start(fn_grid, expand=True, fill=True, padding=0)
 
-        self.num_grid = Gtk.Grid()
-        self.num_grid.set_halign(Gtk.Align.CENTER)
-        self.num_grid.set_column_homogeneous(True)
+        num_grid = Gtk.Grid()
+        num_grid.set_halign(Gtk.Align.CENTER)
+        num_grid.set_column_homogeneous(True)
         num_buttons = [
             [("7", K7), ("8", K8), ("9", K9), (":", KDIV), ("Min", KMIN)],
             [("4", K4), ("5", K5), ("6", K6), ("x", KMUL), ("MR", KMR)],
@@ -80,15 +92,10 @@ class Window(Gtk.Window):
             for j, (label, key) in enumerate(row):
                 b = Gtk.Button.new_with_label(label)
                 b.connect("clicked", self.on_clicked, key)
-                self.num_grid.attach(b, j, i, 1, 1)
+                num_grid.attach(b, j, i, 1, 1)
 
-        self.vbox.pack_start(self.num_grid, expand=True, fill=True, padding=0)
-
-        self.add(self.vbox)
-
-        self.emulator = Emulator(Program.from_file())
-        self.emulator.until(0x3c3)
-        self.update_display()
+        vbox.pack_start(num_grid, expand=True, fill=True, padding=0)
+        return vbox
 
     def on_clicked(self, widget, key):
         self.emulator.until(0x3c5)
