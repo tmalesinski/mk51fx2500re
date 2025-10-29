@@ -33,7 +33,19 @@ class Window(Gtk.Window):
         self.vbox.pack_start(display_frame,
                              expand=True, fill=False, padding=0)
 
-        self.vbox.pack_start(self.build_mk51_keyboard(),
+        self.type_combo = Gtk.ComboBoxText()
+        self.type_combo.append("mk51", "MK-51")
+        self.type_combo.append("fx2500", "FX-2500")
+        self.type_combo.set_active_id("mk51")
+        self.type_combo.connect("changed", self.on_type_changed)
+
+        self.vbox.pack_start(self.type_combo,
+                             expand=True, fill=False, padding=0)
+
+
+        self.keyboard_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.build_mk51_keyboard(self.keyboard_vbox)
+        self.vbox.pack_start(self.keyboard_vbox,
                              expand=True, fill=True, padding=0)
 
         self.add(self.vbox)
@@ -42,9 +54,7 @@ class Window(Gtk.Window):
         self.emulator.until(0x3c3)
         self.update_display()
 
-    def build_mk51_keyboard(self):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
+    def build_mk51_keyboard(self, vbox):
         fn_grid = Gtk.Grid()
         fn_grid.set_halign(Gtk.Align.CENTER)
         fn_grid.set_column_homogeneous(True)
@@ -95,7 +105,17 @@ class Window(Gtk.Window):
                 num_grid.attach(b, j, i, 1, 1)
 
         vbox.pack_start(num_grid, expand=True, fill=True, padding=0)
-        return vbox
+
+    def on_type_changed(self, widget):
+        t = widget.get_active_id()
+        print("Type changed!", t)
+
+        self.keyboard_vbox.foreach(
+            lambda widget: self.keyboard_vbox.remove(widget))
+
+        if t == "mk51":
+            self.build_mk51_keyboard(self.keyboard_vbox)
+        self.keyboard_vbox.show_all()
 
     def on_clicked(self, widget, key):
         self.emulator.until(0x3c5)
