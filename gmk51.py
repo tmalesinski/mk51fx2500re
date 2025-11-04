@@ -36,6 +36,7 @@ class Window(Gtk.Window):
         self.type_combo = Gtk.ComboBoxText()
         self.type_combo.append("mk51", "MK-51")
         self.type_combo.append("fx2500", "FX-2500")
+        self.type_combo.append("fx48", "FX-48 / MK-38")
         self.type_combo.set_active_id("mk51")
         self.type_combo.connect("changed", self.on_type_changed)
 
@@ -160,6 +161,33 @@ class Window(Gtk.Window):
 
         vbox.pack_start(num_grid, expand=True, fill=True, padding=0)
 
+    def build_fx48_keyboard(self, vbox):
+        grid = Gtk.Grid()
+        grid.set_column_homogeneous(True)
+
+        buttons = [
+            [None, None, ("7", "", K7), ("8", "", K8), ("9", "", K9),
+             ("F1", "", KF1), ("F2", "", KF2)],
+            [None, None, ("4", "", K4), ("5", "", K5), ("6", "", K6),
+             ("[(", "", KLBR), (")]", "", KRBR)],
+            [None, None, ("1", "", K1), ("2", "", K2), ("3", "", K3),
+             ("×", "", KMUL), ("÷", "", KDIV)],
+            [("AC", "", KC), ("C", "", KCE), ("0", "", K0),
+             (".", "", KP), ("=", "", KEQ),
+             ("+", "", KPLUS), ("-", "", KMINUS)]]
+
+        for i, row in enumerate(buttons):
+            for j, p in enumerate(row):
+                if p is None: continue
+                (label_inside, label_above, key) = p
+                b = Gtk.Button("")
+                child = b.get_child()
+                child.set_markup(label_inside)
+                b.connect("clicked", self.on_clicked, key)
+                grid.attach(b, j, i, 1, 1)
+
+        vbox.pack_start(grid, expand=True, fill=True, padding=0)
+
     def on_type_changed(self, widget):
         t = widget.get_active_id()
         self.keyboard_vbox.foreach(
@@ -169,6 +197,8 @@ class Window(Gtk.Window):
             self.build_mk51_keyboard(self.keyboard_vbox)
         elif t == "fx2500":
             self.build_fx2500_keyboard(self.keyboard_vbox)
+        elif t == "fx48":
+            self.build_fx48_keyboard(self.keyboard_vbox)
         self.keyboard_vbox.show_all()
 
     def on_clicked(self, widget, key):
