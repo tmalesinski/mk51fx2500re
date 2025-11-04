@@ -60,7 +60,7 @@ class Window(Gtk.Window):
         fn_grid.set_column_homogeneous(True)
         fn_buttons = [
             [None, ("C", KC), ("CE", KCE),
-             ('EXP <span color="red">pi</span>', KEXP),
+             ('EXP <span color="red">π</span>', KEXP),
              ("MODE", KMODE),
              ('<span color="red">F</span>', KF)],
             [('log <span color="red">10<sup>x</sup></span>', KLOG),
@@ -93,9 +93,9 @@ class Window(Gtk.Window):
         num_grid.set_halign(Gtk.Align.CENTER)
         num_grid.set_column_homogeneous(True)
         num_buttons = [
-            [("7", K7), ("8", K8), ("9", K9), (":", KDIV), ("Min", KMIN)],
+            [("7", K7), ("8", K8), ("9", K9), ("÷", KDIV), ("Min", KMIN)],
             [("4", K4), ("5", K5), ("6", K6), ("x", KMUL), ("MR", KMR)],
-            [("1", K1), ("2", K2), ("3", K3), ("-", KMUL), ("M+", KMPLUS)],
+            [("1", K1), ("2", K2), ("3", K3), ("-", KMINUS), ("M+", KMPLUS)],
             [("0", K0), (".", KP), ("/-/", KNEG), ("+", KPLUS), ("=", KEQ)]]
 
         for i, row in enumerate(num_buttons):
@@ -106,15 +106,69 @@ class Window(Gtk.Window):
 
         vbox.pack_start(num_grid, expand=True, fill=True, padding=0)
 
+    def build_fx2500_keyboard(self, vbox):
+        fn_grid = Gtk.Grid()
+        fn_grid.set_halign(Gtk.Align.CENTER)
+        fn_grid.set_column_homogeneous(True)
+        fn_buttons = [
+            [None,
+             ('<span color="red">INV</span>', KINV), ("MODE", KMODE),
+             ('log <span color="red">10<sup>x</sup></span>', KLOG),
+             ('ln <span color="red">e<sup>x</sup></span>', KLN),
+             ("x<sup>y</sup> "
+              '<span color="red">x<sup>1/y</sup></span>', KPOW),
+             ],
+            [("+/-", KNEG),
+             ('√<span overline="single"> </span>'
+              '<span color="red">x<sup>2</sup></span>', KSQRT),
+             ("°′″", KDMS),
+             ('sin<span color="red"><sup>-1</sup></span>', KSIN),
+             ('cos<span color="red"><sup>-1</sup></span>', KCOS),
+             ('tan<span color="red"><sup>-1</sup></span>', KTAN)],
+            [('1/x <span color="red">x!</span>', K1OVERX),
+             ('X↔Y<span color="red">M</span>', KSWAP),
+             ("[(", KLBR), (")]", KRBR), ("M in", KMIN), ("MR", KMR)]]
+        for i, row in enumerate(fn_buttons):
+            for j, p in enumerate(row):
+                if p is None: continue
+                label, key = p
+                b = Gtk.Button("")
+                child = b.get_child()
+                child.set_markup(label)
+                b.connect("clicked", self.on_clicked, key)
+                fn_grid.attach(b, j, i, 1, 1)
+
+        vbox.pack_start(fn_grid, expand=True, fill=True, padding=0)
+
+        num_grid = Gtk.Grid()
+        num_grid.set_halign(Gtk.Align.CENTER)
+        num_grid.set_column_homogeneous(True)
+        num_buttons = [
+            [("7", K7), ("8", K8), ("9", K9), ("C", KCE), ("AC", KC)],
+            [("4", K4), ("5", K5), ("6", K6), ("x", KMUL), ("÷:", KDIV)],
+            [("1", K1), ("2", K2), ("3", K3), ("+", KPLUS), ("-", KMINUS)],
+            [("0", K0), (".", KP), ('EXP <span color="red">π</span>', KEXP),
+             ("=", KEQ), ("M+", KMPLUS)]]
+
+        for i, row in enumerate(num_buttons):
+            for j, (label, key) in enumerate(row):
+                b = Gtk.Button("")
+                child = b.get_child()
+                child.set_markup(label)
+                b.connect("clicked", self.on_clicked, key)
+                num_grid.attach(b, j, i, 1, 1)
+
+        vbox.pack_start(num_grid, expand=True, fill=True, padding=0)
+
     def on_type_changed(self, widget):
         t = widget.get_active_id()
-        print("Type changed!", t)
-
         self.keyboard_vbox.foreach(
             lambda widget: self.keyboard_vbox.remove(widget))
 
         if t == "mk51":
             self.build_mk51_keyboard(self.keyboard_vbox)
+        elif t == "fx2500":
+            self.build_fx2500_keyboard(self.keyboard_vbox)
         self.keyboard_vbox.show_all()
 
     def on_clicked(self, widget, key):

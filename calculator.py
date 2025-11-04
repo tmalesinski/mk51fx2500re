@@ -4,7 +4,7 @@ import re
 def get_display(e):
     num = ""
     ind = ""
-    ind_txt = ["?0", "F", "?2", "M", "K", "DEG", "RAD", "GRA", "SD"]
+    ind_txt = ["?0", "F", "INV", "M", "K", "DEG", "RAD", "GRA", "SD"]
     for i in range(9):
         d = e.regs[0][12 - i]
         if d <= 9:
