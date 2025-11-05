@@ -1,10 +1,13 @@
 from decimal import Decimal
 import re
 
-def get_display(e):
+def get_display(e, fx2500=True):
     num = ""
     ind = ""
-    ind_txt = ["?0", "F", "INV", "M", "K", "DEG", "RAD", "GRA", "SD"]
+    if fx2500:
+        ind_txt = ["F1", "F", "INV", "M", "K", "DEG", "RAD", "GRA", "SD"]
+    else:
+        ind_txt = ["F1", "F2", "INV", "M", "K", "DEG", "RAD", "GRA", "SD"]
     for i in range(9):
         d = e.regs[0][12 - i]
         if d <= 9:
@@ -19,6 +22,7 @@ def get_display(e):
         if p & 8:
             num += "."
         ind += ind_txt[i] if p & 4 else " " * len(ind_txt[i])
+        ind += " "
     return num, ind
 
 
