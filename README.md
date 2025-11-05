@@ -1,8 +1,14 @@
-# Reverse Engineering Casio FX-2500 and Elektronika MK-51 Calculators
+# Reverse Engineering the NEC D897G Calculator Chip
 
-This a project to reverse engineer chips and code used in Casio
-FX-2500 and its clone, Elektronika MK-51 based on [die photos by Travis
-Goodspeed](https://x.com/travisgoodspeed/status/1682510482647687168).
+This is a project to reverse engineer the NEC D897G chip and its
+Soviet clone К757ИП1-2 based on [die photos by Travis
+Goodspeed](https://x.com/travisgoodspeed/status/1682510482647687168). The
+NEC chip was used in Casio fx-2500 and fx-48 calculators. The Soviet
+version was used in Elektronika MK-51 and MK-38.
+
+The code extracted from the die photos supports keyboard layouts both
+of the larger fx-2500 and MK-51 calculators and the smaller fx-48 and
+MK-38.
 
 ## Emulator
 
@@ -24,7 +30,7 @@ To learn more about the chips, see:
 
 ## Reading the Code
 
-You can disassmble the code by running:
+You can disassemble the code by running:
 
 ```
 ./analyze.py listing
