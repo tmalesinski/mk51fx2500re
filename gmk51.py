@@ -166,25 +166,47 @@ class Window(Gtk.Window):
         grid.set_column_homogeneous(True)
 
         buttons = [
-            [None, None, ("7", "", K7), ("8", "", K8), ("9", "", K9),
+            [None, None,
+             ("7", 'MODE <span color="red">SD</span>', K7),
+             ("8", '√<span overline="single"> </span>'
+             '<span color="red">x<sup>2</sup></span>', K8),
+             ("9", '1/x <span color="red">x!</span>', K9),
              ("F1", "", KF1), ("F2", "", KF2)],
-            [None, None, ("4", "", K4), ("5", "", K5), ("6", "", K6),
-             ("[(", "", KLBR), (")]", "", KRBR)],
-            [None, None, ("1", "", K1), ("2", "", K2), ("3", "", K3),
-             ("×", "", KMUL), ("÷", "", KDIV)],
-            [("AC", "", KC), ("C", "", KCE), ("0", "", K0),
-             (".", "", KP), ("=", "", KEQ),
-             ("+", "", KPLUS), ("-", "", KMINUS)]]
+            [None, None,
+             ("4", 'log <span color="red">10<sup>x</sup></span>', K4),
+             ("5", 'ln <span color="red">e<sup>x</sup></span>', K5),
+             ("6", "x<sup>y</sup> "
+              '<span color="red">x<sup>1/y</sup></span>', K6),
+             ("[(", 'M in <span color="red">σ<sub>n</sub></span>', KLBR),
+             (")]", 'MR <span color="red">σ<sub>n-1</sub></span>', KRBR)],
+            [None, None,
+             ("1", 'sin<span color="red"><sup>-1</sup></span>', K1),
+             ("2", 'cos<span color="red"><sup>-1</sup></span>', K2),
+             ("3", 'tan<span color="red"><sup>-1</sup></span>', K3),
+             ("×", 'MC <span color="red">Σx<sup>2</sup></span>', KMUL),
+             ("÷", 'X↔M <span color="red">Σx</span>', KDIV)],
+            [("AC", 'MAC <span color="red">SAC</span>', KC),
+             ("C", "", KCE), ("0", "°′″", K0),
+             (".", "+/-", KP), ("=", 'EXP <span color="red">π</span>', KEQ),
+             ("+", 'M+ <span color="red">x</span>', KPLUS),
+             ("-", 'M- <span color="red">DEL</span>', KMINUS)]]
 
         for i, row in enumerate(buttons):
             for j, p in enumerate(row):
                 if p is None: continue
                 (label_inside, label_above, key) = p
+                keybox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+                label = Gtk.Label()
+                label.set_markup(label_above)
+
                 b = Gtk.Button("")
                 child = b.get_child()
                 child.set_markup(label_inside)
                 b.connect("clicked", self.on_clicked, key)
-                grid.attach(b, j, i, 1, 1)
+
+                keybox.pack_end(b, expand=True, fill=False, padding=0)
+                keybox.pack_end(label, expand=True, fill=False, padding=0)
+                grid.attach(keybox, j, i, 1, 1)
 
         vbox.pack_start(grid, expand=True, fill=True, padding=0)
 
