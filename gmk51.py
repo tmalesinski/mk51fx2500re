@@ -233,7 +233,7 @@ class Window(Gtk.Window):
     def update_display(self):
         fx2500 = self.type_combo.get_active_id() in ["fx2500", "mk51"]
         num, ind = calculator.get_display(self.emulator, fx2500=fx2500)
-        self.display.set_text(num)
+        self.display.set_markup('<span size="xx-large">' + num + "</span>")
         self.modes.set_text(ind)
 
 
