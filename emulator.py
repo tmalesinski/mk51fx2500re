@@ -35,26 +35,26 @@ class Emulator:
 
     def _get_input(self, inp, field):
         fs = slice(field[0], field[1] + 1)
-        if isinstance(inp, RegisterInput):
+        if isinstance(inp, RegisterOperand):
             return self.regs[inp.n][fs]
-        if isinstance(inp, KeyCodeInput):
+        if isinstance(inp, KeyCodeOperand):
             r = [0] * 15
             r[13 - self.keycode // 10] = (
                 [0, 1, 2, 4, 8, 12][self.keycode % 10])
             return r[fs]
-        if isinstance(inp, ConstantInput):
+        if isinstance(inp, ConstantOperand):
             r = [0] * (field[1] - field[0] + 1)
             r[0] = inp.n
             return r
         # TODO: Kr0Input?
-        if isinstance(inp, MaskedRegisterInput):
+        if isinstance(inp, MaskedRegisterOperand):
             return [d & inp.mask for d in self.regs[inp.n][fs]]
-        if isinstance(inp, OredRegisterInput):
+        if isinstance(inp, OredRegisterOperand):
             return [d | inp.mask for d in self.regs[inp.n][fs]]
-        if isinstance(inp, PushDigitInput):
+        if isinstance(inp, PushDigitOperand):
             r = self.regs[inp.n][fs]
             return r[1:] + [inp.digit]
-        if isinstance(inp, LeftShiftedRegisterInput):
+        if isinstance(inp, LeftShiftedRegisterOperand):
             r = self.regs[inp.n][fs]
             return [0] + r[:-1]
         raise NotImplementedError(inp)
