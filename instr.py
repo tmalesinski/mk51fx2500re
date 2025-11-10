@@ -10,7 +10,7 @@ __all__ = [
     "is_branch_z", "is_branch_c",
     "instr_masked_reg", "instr_shl", "instr_insel0", "instr_field_en",
     "instr_selr_to_r0", "instr_selr_to_r1", "instr_alu_sub", "instr_we",
-    "RegisterOperand", "KeyCodeOperand", "ConstantOperand", "Kr0Input",
+    "RegisterOperand", "KeyCodeOperand", "ConstantOperand", "Kr0Operand",
     "MaskedRegisterOperand", "OredRegisterOperand", "PushDigitOperand",
     "LeftShiftedRegisterOperand",
     "alu_input0", "alu_input1"
@@ -109,10 +109,16 @@ class RegisterOperand(Operand):
     def __init__(self, n):
         self.n = n
 
+    def __eq__(self, other):
+        return isinstance(other, RegisterOperand) and other.n == self.n
+
     def __str__(self):
         return f"R{self.n}"
 
 class KeyCodeOperand(Operand):
+    def __eq__(self, other):
+        return isinstance(other, KeyCodeOperand)
+
     def __str__(self):
         return f"KEY"
 
@@ -120,13 +126,19 @@ class ConstantOperand(Operand):
     def __init__(self, n):
         self.n = n
 
+    def __eq__(self, other):
+        return isinstance(other, ConstantOperand) and other.n == self.n
+
     def __str__(self):
         return "0" if self.n == 0 else f"{self.n:x}"
 
     def always_zero(self):
         return self.n == 0
 
-class Kr0Input(Operand):
+class Kr0Operand(Operand):
+    def __eq__(self, other):
+        return isinstance(other, Kr0Operand)
+
     def __str__(self):
         return "KR0?"
 
@@ -134,6 +146,11 @@ class MaskedRegisterOperand(Operand):
     def __init__(self, n, mask):
         self.n = n
         self.mask = mask
+
+    def __eq__(self, other):
+        return (isinstance(other, MaskedRegisterOperand) and
+                other.n == self.n and
+                other.mask == self.mask)
 
     def __str__(self):
         return f"R{self.n}&{self.mask:x}"
@@ -146,6 +163,11 @@ class OredRegisterOperand(Operand):
         self.n = n
         self.mask = mask
 
+    def __eq__(self, other):
+        return (isinstance(other, OredRegisterOperand) and
+                other.n == self.n and
+                other.mask == self.mask)
+
     def __str__(self):
         return f"{self.mask:x}|R{self.n}"
 
@@ -154,12 +176,21 @@ class PushDigitOperand(Operand):
         self.n = n
         self.digit = digit
 
+    def __eq__(self, other):
+        return (isinstance(other, PushDigitOperand) and
+                other.n == self.n and
+                other.digit == self.digit)
+
     def __str__(self):
         return f"{self.digit:x}.H|(R{self.n} SHR)"
 
 class LeftShiftedRegisterOperand(Operand):
     def __init__(self, n):
         self.n = n
+
+    def __eq__(self, other):
+        return (isinstance(other, LeftShiftedRegisterOperand) and
+                other.n == self.n)
 
     def __str__(self):
         return f"R{self.n} SHL"

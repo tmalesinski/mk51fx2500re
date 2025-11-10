@@ -46,7 +46,7 @@ class Emulator:
             r = [0] * (field[1] - field[0] + 1)
             r[0] = inp.n
             return r
-        # TODO: Kr0Input?
+        # TODO: Kr0Operand?
         if isinstance(inp, MaskedRegisterOperand):
             return [d & inp.mask for d in self.regs[inp.n][fs]]
         if isinstance(inp, OredRegisterOperand):
