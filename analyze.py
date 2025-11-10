@@ -226,15 +226,12 @@ def decode_main_instr(adr, cmd, annotations=Annotations()):
         return f"RETURN {instr_next_adr(adr, cmd):03x}"
     sub = instr_alu_sub(cmd)
     a0s = alu_input0(cmd)
-    # TODO: stop using a0 and a1, rename a0s, a1s to a0, a1
-    a0 = str(a0s)
+    # TODO: rename a0s, a1s to a0, a1
     a1s = alu_input1(cmd)
-    a1 = str(a1s)
     selrn = bf(cmd, 21, 19)
     selr = f"R{selrn}"
     selrs = RegisterOperand(selrn)
     if instr_we(cmd):
-        dest = selr
         dests = selrs
         a0_is_dest = a0s == dests
         if a0s.always_zero():
