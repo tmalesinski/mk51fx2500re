@@ -225,49 +225,47 @@ def decode_main_instr(adr, cmd, annotations=Annotations()):
     if is_return(cmd):
         return f"RETURN {instr_next_adr(adr, cmd):03x}"
     sub = instr_alu_sub(cmd)
-    a0s = alu_input0(cmd)
-    # TODO: rename a0s, a1s to a0, a1
-    a1s = alu_input1(cmd)
+    a0 = alu_input0(cmd)
+    a1 = alu_input1(cmd)
     selrn = bf(cmd, 21, 19)
-    selr = f"R{selrn}"
     selrs = RegisterOperand(selrn)
     if instr_we(cmd):
         dests = selrs
-        a0_is_dest = a0s == dests
-        if a0s.always_zero():
-            if a1s.always_zero():
+        a0_is_dest = a0 == dests
+        if a0.always_zero():
+            if a1.always_zero():
                 return f"CLR {dests}"
             assert not sub
             if instr_selr_to_r0(cmd):
-                assert a1s == RegisterOperand(0)
-                return f"SWAP {a1s},{dests}"
+                assert a1 == RegisterOperand(0)
+                return f"SWAP {a1},{dests}"
             elif instr_selr_to_r1(cmd):
-                assert a1s == RegisterOperand(1)
-                return f"SWAP {a1s},{dests}"
-            elif isinstance(a1s, OredRegisterOperand) and a1s.n == selrn:
-                return f"OR {a1s.mask:x},{dests}"
+                assert a1 == RegisterOperand(1)
+                return f"SWAP {a1},{dests}"
+            elif isinstance(a1, OredRegisterOperand) and a1.n == selrn:
+                return f"OR {a1.mask:x},{dests}"
             else:
-                return f"MOV {a1s},{dests}"
+                return f"MOV {a1},{dests}"
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
-        if a1s.always_zero():
-            if isinstance(a0s, MaskedRegisterOperand) and a0s.n == selrn:
-                return f"AND {a0s.mask:x},{dests}"
-            if isinstance(a0s, LeftShiftedRegisterOperand) and a0s.n == selrn:
+        if a1.always_zero():
+            if isinstance(a0, MaskedRegisterOperand) and a0.n == selrn:
+                return f"AND {a0.mask:x},{dests}"
+            if isinstance(a0, LeftShiftedRegisterOperand) and a0.n == selrn:
                 return f"SHL {dests}"
-            if isinstance(a0s, PushDigitOperand) and a0s.n == selrn:
-                return f"INSH {a0s.digit:x},{dests}"
-            return f"MOV {a0s},{dests}"
+            if isinstance(a0, PushDigitOperand) and a0.n == selrn:
+                return f"INSH {a0.digit:x},{dests}"
+            return f"MOV {a0},{dests}"
         else:
-            if (not sub and isinstance(a0s, LeftShiftedRegisterOperand) and
-                isinstance(a1s, ConstantOperand) and a0s.n == selrn):
-                return f"INSL {a1s.n:x},{dests}"
+            if (not sub and isinstance(a0, LeftShiftedRegisterOperand) and
+                isinstance(a1, ConstantOperand) and a0.n == selrn):
+                return f"INSL {a1.n:x},{dests}"
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
-                return f"{op} {a1s},{dests}"
+                return f"{op} {a1},{dests}"
             else:
-                return f"{op} {a0s},{a1s},{dests}"
+                return f"{op} {a0},{a1},{dests}"
     else:  # not we
-        if a0s.always_zero() and a1s.always_zero():
+        if a0.always_zero() and a1.always_zero():
             if instr_selr_to_r0(cmd):
                 return f"MOV {selrs},R0"
             elif instr_selr_to_r1(cmd):
@@ -276,11 +274,11 @@ def decode_main_instr(adr, cmd, annotations=Annotations()):
                 return f"NOP{bf(cmd, 18, 14)}"
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if sub:
-            if a1s.always_zero() and isinstance(a0s, MaskedRegisterOperand):
-                return f"TST {a0s.mask:x},R{a0s.n}"
-            return f"CMP {a1s},{a0s}"
+            if a1.always_zero() and isinstance(a0, MaskedRegisterOperand):
+                return f"TST {a0.mask:x},R{a0.n}"
+            return f"CMP {a1},{a0}"
         else:
-            return f"CMPN {a1s},{a0s}"
+            return f"CMPN {a1},{a0}"
     return "???"
 
 
