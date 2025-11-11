@@ -74,9 +74,9 @@ def simplify_edges(edges):
     return res
 
 def explain_edges(adr, cmd, edges):
-    d = decode_main_instr(adr, cmd)
+    instr, operands = decode_main_instr(adr, cmd)
     tr = {}
-    if d.startswith("CMP "):
+    if instr == "CMP":
         tr = {
             "C": ">",
             "!C": "<=",
@@ -84,7 +84,7 @@ def explain_edges(adr, cmd, edges):
             "!Z": "!=",
             "!C!Z": "<",
         }
-    elif d.startswith("CMPN "):
+    elif instr == "CMPN":
         tr = {
             "C": "<=",
             "!C": ">",
@@ -219,11 +219,11 @@ def decode_main_instr(adr, cmd, annotations=Annotations()):
         return f"{a:03x}"
 
     if is_jump(cmd):
-        return f"JUMP {fmt_adr(instr_next_adr(adr, cmd))}"
+        return ("JUMP", [fmt_adr(instr_next_adr(adr, cmd))])
     if is_call(cmd):
-        return f"CALL {fmt_adr(instr_next_adr(adr, cmd))}"
+        return ("CALL", [fmt_adr(instr_next_adr(adr, cmd))])
     if is_return(cmd):
-        return f"RETURN {instr_next_adr(adr, cmd):03x}"
+        return ("RETURN", [f"{instr_next_adr(adr, cmd):03x}"])
     sub = instr_alu_sub(cmd)
     a0 = alu_input0(cmd)
     a1 = alu_input1(cmd)
@@ -234,56 +234,60 @@ def decode_main_instr(adr, cmd, annotations=Annotations()):
         a0_is_dest = a0 == dest
         if a0.always_zero():
             if a1.always_zero():
-                return f"CLR {dest}"
+                return ("CLR", [dest])
             assert not sub
             if instr_selr_to_r0(cmd):
                 assert a1 == RegisterOperand(0)
-                return f"SWAP {a1},{dest}"
+                return ("SWAP", [a1, dest])
             elif instr_selr_to_r1(cmd):
                 assert a1 == RegisterOperand(1)
-                return f"SWAP {a1},{dest}"
+                return ("SWAP", [a1, dest])
             elif isinstance(a1, OredRegisterOperand) and a1.n == selrn:
-                return f"OR {a1.mask:x},{dest}"
+                return ("OR", [ConstantOperand(a1.mask), dest])
             else:
-                return f"MOV {a1},{dest}"
+                return ("MOV", [a1, dest])
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if a1.always_zero():
             if isinstance(a0, MaskedRegisterOperand) and a0.n == selrn:
-                return f"AND {a0.mask:x},{dest}"
+                return ("AND", [ConstantOperand(a0.mask), dest])
             if isinstance(a0, LeftShiftedRegisterOperand) and a0.n == selrn:
-                return f"SHL {dest}"
+                return ("SHL", [dest])
             if isinstance(a0, PushDigitOperand) and a0.n == selrn:
-                return f"INSH {a0.digit:x},{dest}"
-            return f"MOV {a0},{dest}"
+                return ("INSH", [ConstantOperand(a0.digit), dest])
+            return ("MOV", [a0, dest])
         else:
             if (not sub and isinstance(a0, LeftShiftedRegisterOperand) and
                 isinstance(a1, ConstantOperand) and a0.n == selrn):
-                return f"INSL {a1.n:x},{dest}"
+                return ("INSL", [ConstantOperand(a1.n), dest])
             op = "SUB" if sub else "ADD"
             if a0_is_dest:
-                return f"{op} {a1},{dest}"
+                return (op, [a1, dest])
             else:
-                return f"{op} {a0},{a1},{dest}"
+                return (op, [a0, a1, dest])
     else:  # not we
         if a0.always_zero() and a1.always_zero():
             if instr_selr_to_r0(cmd):
-                return f"MOV {selr},R0"
+                return ("MOV", [selr, RegisterOperand(0)])
             elif instr_selr_to_r1(cmd):
-                return f"MOV {selr},R1"
+                return ("MOV", [selr, RegisterOperand(1)])
             else:
-                return f"NOP{bf(cmd, 18, 14)}"
+                return (f"NOP{bf(cmd, 18, 14)}", [])
         assert not instr_selr_to_r0(cmd) and not instr_selr_to_r1(cmd)
         if sub:
             if a1.always_zero() and isinstance(a0, MaskedRegisterOperand):
-                return f"TST {a0.mask:x},R{a0.n}"
-            return f"CMP {a1},{a0}"
+                return ("TST",
+                        [ConstantOperand(a0.mask), RegisterOperand(a0.n)])
+            return ("CMP", [a1, a0])
         else:
-            return f"CMPN {a1},{a0}"
-    return "???"
+            return ("CMPN", [a1, a0])
+    return ("???", [])
 
 
 def decode_instr(adr, cmd, skip_adr=False, annotations=Annotations()):
-    i = decode_main_instr(adr, cmd, annotations=annotations)
+    istr = decode_main_instr(adr, cmd, annotations=annotations)
+    i = istr[0]
+    if istr[1]:
+        i += " " + ",".join(str(opnd) for opnd in istr[1])
     if instr_field_en(cmd):
         fcode = bf(cmd, 13, 10)
         f = decode_field(fcode)
