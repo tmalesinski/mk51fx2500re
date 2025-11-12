@@ -74,7 +74,16 @@ def simplify_edges(edges):
     return res
 
 def explain_edges(adr, cmd, edges):
+    def reflect(tr):
+        refl = {">": "<", "<": ">", ">=": "<=", "<=": ">="}
+        return {cond: refl.get(comp, comp) for cond, comp in tr.items()}
+
+    def add_operands(tr, left, right):
+        return {cond: f"{left} {comp} {right}" for cond, comp in tr.items()}
+
     instr, operands = decode_main_instr(adr, cmd)
+    fcode = bf(cmd, 13, 10)
+    field = format_field(decode_field(fcode))
     tr = {}
     if instr == "CMP":
         tr = {
@@ -84,6 +93,28 @@ def explain_edges(adr, cmd, edges):
             "!Z": "!=",
             "!C!Z": "<",
         }
+        if (isinstance(operands[0], ConstantOperand) and
+            isinstance(operands[1], RegisterOperand)):
+            regop = f"{operands[1]}{field}"
+            tr = add_operands(reflect(tr), regop, operands[0])
+        if (isinstance(operands[0], RegisterOperand) and
+            isinstance(operands[1], RegisterOperand)):
+            tr = add_operands(
+                tr,
+                f"{operands[0]}{field}",
+                f"{operands[1]}{field}")
+    elif instr == "TST":
+        if (isinstance(operands[0], ConstantOperand) and
+            isinstance(operands[1], RegisterOperand)):
+            if operands[0].n != 0xf:
+                op = f"{operands[1]}{field} & {operands[0]}"
+            else:
+                op = f"{operands[1]}{field}"
+            tr = {
+                "Z": f"!({op})",
+                "!Z": f"{op}",
+            }
+
     elif instr == "CMPN":
         tr = {
             "C": "<=",
@@ -212,6 +243,9 @@ class Annotations:
     def external(self, a):
         return a in self._external
 
+def format_field(f):
+    return f"[{f[1]}:{f[0]}]" if f[0] != f[1] else f"[{f[0]}]"
+
 def decode_main_instr(adr, cmd, annotations=Annotations()):
     def fmt_adr(a):
         lab = annotations.label(a)
@@ -291,10 +325,7 @@ def decode_instr(adr, cmd, skip_adr=False, annotations=Annotations()):
     if instr_field_en(cmd):
         fcode = bf(cmd, 13, 10)
         f = decode_field(fcode)
-        if f[0] != f[1]:
-            i += f" [{f[1]}:{f[0]}]"
-        else:
-            i += f" [{f[0]}]"
+        i += " " + format_field(f)
         if has_decimal_adjustment(fcode):
             i += ".D"
     if not skip_adr:
