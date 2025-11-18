@@ -82,8 +82,8 @@ def explain_edges(adr, cmd, edges):
         return {cond: f"{left} {comp} {right}" for cond, comp in tr.items()}
 
     instr, operands = decode_main_instr(adr, cmd)
-    fcode = bf(cmd, 13, 10)
-    field = format_field(decode_field(fcode))
+    field = decode_field(bf(cmd, 13, 10))
+    field_str = format_field(field)
     tr = {}
     if instr == "CMP":
         tr = {
@@ -95,31 +95,41 @@ def explain_edges(adr, cmd, edges):
         }
         if (isinstance(operands[0], ConstantOperand) and
             isinstance(operands[1], RegisterOperand)):
-            regop = f"{operands[1]}{field}"
+            regop = f"{operands[1]}{field_str}"
             tr = add_operands(reflect(tr), regop, operands[0])
         if (isinstance(operands[0], RegisterOperand) and
             isinstance(operands[1], RegisterOperand)):
             tr = add_operands(
                 tr,
-                f"{operands[0]}{field}",
-                f"{operands[1]}{field}")
+                f"{operands[0]}{field_str}",
+                f"{operands[1]}{field_str}")
     elif instr == "TST":
         if (isinstance(operands[0], ConstantOperand) and
             isinstance(operands[1], RegisterOperand)):
             if operands[0].n != 0xf:
-                op = f"{operands[1]}{field} & {operands[0]}"
+                op = f"{operands[1]}{field_str} & {operands[0]}"
             else:
-                op = f"{operands[1]}{field}"
+                op = f"{operands[1]}{field_str}"
             tr = {
                 "Z": f"!({op})",
                 "!Z": f"{op}",
             }
-
     elif instr == "CMPN":
-        tr = {
-            "C": "<=",
-            "!C": ">",
-        }
+        if (isinstance(operands[0], ConstantOperand) and
+            isinstance(operands[1], RegisterOperand) and
+            field[0] == field[1]):
+            regop = f"{operands[1]}{field_str}"
+            n = operands[0].n
+            tr = {
+                "C": f"{regop} >= {16 - n:x}",
+                "!C": f"{regop} < {16 - n:x}",
+            }
+        else:
+            s = f"({operands[0]} + {operands[1]}){field_str}"
+            tr = {
+                "C": f"{s} overflows",
+                "!C": f"{s} does not overflow"
+            }
     return [(e[0], tr.get(e[1], e[1])) for e in edges]
 
 def outgoing_edges(adr, cmd, ret_cols):
